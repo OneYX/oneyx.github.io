@@ -1,0 +1,17 @@
+<h3 id="59-10-1-__u81EA_u5B9A_u4E49Gradle_uFF0C_u7528_u4E8E_u4EA7_u751F_u4E00_u4E2A_u7EE7_u627F_u4F9D_u8D56_u7BA1_u7406_u7684pom"><a href="#59-10-1-__u81EA_u5B9A_u4E49Gradle_uFF0C_u7528_u4E8E_u4EA7_u751F_u4E00_u4E2A_u7EE7_u627F_u4F9D_u8D56_u7BA1_u7406_u7684pom" class="headerlink" title="59.10.1. 自定义Gradle，用于产生一个继承依赖管理的pom"></a>59.10.1. 自定义Gradle，用于产生一个继承依赖管理的pom</h3><p>下面示例展示了如何配置Gradle去产生一个继承自<code>spring-boot-starter-parent</code>的pom。请参考<a href="http://gradle.org/docs/current/userguide/userguide.html">Gradle用户指南</a>获取更多信息。</p>
+<pre><code class="gradle">uploadArchives {
+    <span class="keyword">repositories</span> {
+        mavenDeployer {
+            pom {
+                <span class="keyword">project</span> {
+                    parent {
+                        groupId <span class="string">"org.springframework.boot"</span>
+                        artifactId <span class="string">"spring-boot-starter-parent"</span>
+                        version <span class="string">"1.3.0.BUILD-SNAPSHOT"</span>
+                    }
+                }
+            }
+        }
+    }
+}
+</code></pre>

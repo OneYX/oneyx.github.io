@@ -1,0 +1,23 @@
+<h3 id="59-10-2-__u81EA_u5B9A_u4E49Gradle_uFF0C_u7528_u4E8E_u4EA7_u751F_u4E00_u4E2A_u5BFC_u5165_u4F9D_u8D56_u7BA1_u7406_u7684pom"><a href="#59-10-2-__u81EA_u5B9A_u4E49Gradle_uFF0C_u7528_u4E8E_u4EA7_u751F_u4E00_u4E2A_u5BFC_u5165_u4F9D_u8D56_u7BA1_u7406_u7684pom" class="headerlink" title="59.10.2. 自定义Gradle，用于产生一个导入依赖管理的pom"></a>59.10.2. 自定义Gradle，用于产生一个导入依赖管理的pom</h3><p>以下示例展示了如何配置Gradle去产生一个导入<code>spring-boot-dependencies</code>提供的依赖管理的pom。请参考<a href="http://gradle.org/docs/current/userguide/userguide.html">Gradle用户指南</a>获取更多信息。</p>
+<pre><code class="gradle">uploadArchives {
+    <span class="keyword">repositories</span> {
+        mavenDeployer {
+            pom {
+                <span class="keyword">project</span> {
+                    dependencyManagement {
+                        <span class="keyword">dependencies</span> {
+                            dependency {
+                                groupId <span class="string">"org.springframework.boot"</span>
+                                artifactId <span class="string">"spring-boot-dependencies"</span>
+                                version <span class="string">"1.3.0.BUILD-SNAPSHOT"</span>
+                                type <span class="string">"pom"</span>
+                                scope <span class="string">"import"</span>
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+</code></pre>

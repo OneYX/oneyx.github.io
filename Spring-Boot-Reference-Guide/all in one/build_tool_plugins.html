@@ -1,0 +1,426 @@
+<h3 id="u6784_u5EFA_u5DE5_u5177_u63D2_u4EF6"><a href="#u6784_u5EFA_u5DE5_u5177_u63D2_u4EF6" class="headerlink" title="构建工具插件"></a>构建工具插件</h3><p>Spring Boot为Maven和Gradle提供构建工具插件。该插件提供各种各样的特性，包括打包可执行jars。本节提供关于插件的更多详情及用于扩展一个不支持的构建系统所需的帮助信息。如果你是刚刚开始，那可能需要先阅读<a href="http://docs.spring.io/spring-boot/docs/current-SNAPSHOT/reference/htmlsingle/#using-boot">Part III, “Using Spring Boot”</a>章节的<a href="http://docs.spring.io/spring-boot/docs/current-SNAPSHOT/reference/htmlsingle/#using-boot-build-systems">“Chapter 13, Build systems”</a>。</p>
+<h3 id="Spring_Boot_Maven_u63D2_u4EF6"><a href="#Spring_Boot_Maven_u63D2_u4EF6" class="headerlink" title="Spring Boot Maven插件"></a>Spring Boot Maven插件</h3><p><a href="http://docs.spring.io/spring-boot/docs/current-SNAPSHOT/reference/htmlsingle/#using-boot-build-systems">Spring Boot Maven插件</a>为Maven提供Spring Boot支持，它允许你打包可执行jar或war存档，然后就地运行应用。为了使用它，你需要使用Maven 3.2 （或更高版本）。</p>
+<p><strong>注</strong>：参考<a href="http://docs.spring.io/spring-boot/docs/1.3.0.BUILD-SNAPSHOT/maven-plugin/">Spring Boot Maven Plugin Site</a>可以获取全部的插件文档。</p>
+<ul>
+<li>包含该插件</li>
+</ul>
+<p>想要使用Spring Boot Maven插件只需简单地在你的pom.xml的<code>plugins</code>部分包含相应的XML：</p>
+<pre><code class="xml"><span class="meta">&lt;?xml version="1.0" encoding="UTF-8"?&gt;</span>
+<span class="tag">&lt;<span class="name">project</span> <span class="attr">xmlns</span>=<span class="string">"http://maven.apache.org/POM/4.0.0"</span> <span class="attr">xmlns:xsi</span>=<span class="string">"http://www.w3.org/2001/XMLSchema-instance"</span>
+    <span class="attr">xsi:schemaLocation</span>=<span class="string">"http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"</span>&gt;</span>
+    <span class="tag">&lt;<span class="name">modelVersion</span>&gt;</span>4.0.0<span class="tag">&lt;/<span class="name">modelVersion</span>&gt;</span>
+    <span class="comment">&lt;!-- ... --&gt;</span>
+    <span class="tag">&lt;<span class="name">build</span>&gt;</span>
+        <span class="tag">&lt;<span class="name">plugins</span>&gt;</span>
+            <span class="tag">&lt;<span class="name">plugin</span>&gt;</span>
+                <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.springframework.boot<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span>
+                <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spring-boot-maven-plugin<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span>
+                <span class="tag">&lt;<span class="name">version</span>&gt;</span>1.3.0.BUILD-SNAPSHOT<span class="tag">&lt;/<span class="name">version</span>&gt;</span>
+                <span class="tag">&lt;<span class="name">executions</span>&gt;</span>
+                    <span class="tag">&lt;<span class="name">execution</span>&gt;</span>
+                        <span class="tag">&lt;<span class="name">goals</span>&gt;</span>
+                            <span class="tag">&lt;<span class="name">goal</span>&gt;</span>repackage<span class="tag">&lt;/<span class="name">goal</span>&gt;</span>
+                        <span class="tag">&lt;/<span class="name">goals</span>&gt;</span>
+                    <span class="tag">&lt;/<span class="name">execution</span>&gt;</span>
+                <span class="tag">&lt;/<span class="name">executions</span>&gt;</span>
+            <span class="tag">&lt;/<span class="name">plugin</span>&gt;</span>
+        <span class="tag">&lt;/<span class="name">plugins</span>&gt;</span>
+    <span class="tag">&lt;/<span class="name">build</span>&gt;</span>
+<span class="tag">&lt;/<span class="name">project</span>&gt;</span>
+</code></pre>
+<p>该配置会在Maven生命周期的<code>package</code>阶段重新打包一个jar或war。下面的示例显示在<code>target</code>目录下既有重新打包后的jar，也有原始的jar：</p>
+<pre><code class="shell">$ mvn package
+$ ls target/*.jar
+target/myproject-1.0.0.jar target/myproject-1.0.0.jar.original
+</code></pre>
+<p>如果不包含像上面那样的<code>&lt;execution/&gt;</code>，你可以自己运行该插件（但只有在package目标也被使用的情况）。例如：</p>
+<pre><code class="shell">$ mvn package spring-boot:repackage
+$ ls target/*.jar
+target/myproject-1.0.0.jar target/myproject-1.0.0.jar.original
+</code></pre>
+<p>如果使用一个里程碑或快照版本，你还需要添加正确的pluginRepository元素：</p>
+<pre><code class="xml"><span class="tag">&lt;<span class="name">pluginRepositories</span>&gt;</span>
+    <span class="tag">&lt;<span class="name">pluginRepository</span>&gt;</span>
+        <span class="tag">&lt;<span class="name">id</span>&gt;</span>spring-snapshots<span class="tag">&lt;/<span class="name">id</span>&gt;</span>
+        <span class="tag">&lt;<span class="name">url</span>&gt;</span>http://repo.spring.io/snapshot<span class="tag">&lt;/<span class="name">url</span>&gt;</span>
+    <span class="tag">&lt;/<span class="name">pluginRepository</span>&gt;</span>
+    <span class="tag">&lt;<span class="name">pluginRepository</span>&gt;</span>
+        <span class="tag">&lt;<span class="name">id</span>&gt;</span>spring-milestones<span class="tag">&lt;/<span class="name">id</span>&gt;</span>
+        <span class="tag">&lt;<span class="name">url</span>&gt;</span>http://repo.spring.io/milestone<span class="tag">&lt;/<span class="name">url</span>&gt;</span>
+    <span class="tag">&lt;/<span class="name">pluginRepository</span>&gt;</span>
+<span class="tag">&lt;/<span class="name">pluginRepositories</span>&gt;</span>
+</code></pre>
+<ul>
+<li>打包可执行jar和war文件</li>
+</ul>
+<p>一旦<code>spring-boot-maven-plugin</code>被包含到你的pom.xml中，它就会自动尝试使用<code>spring-boot:repackage</code>目标重写存档以使它们能够执行。为了构建一个jar或war，你应该使用常规的packaging元素配置你的项目：</p>
+<pre><code class="xml"><span class="meta">&lt;?xml version="1.0" encoding="UTF-8"?&gt;</span>
+<span class="tag">&lt;<span class="name">project</span> <span class="attr">xmlns</span>=<span class="string">"http://maven.apache.org/POM/4.0.0"</span> <span class="attr">xmlns:xsi</span>=<span class="string">"http://www.w3.org/2001/XMLSchema-instance"</span>
+    <span class="attr">xsi:schemaLocation</span>=<span class="string">"http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"</span>&gt;</span>
+    <span class="comment">&lt;!-- ... --&gt;</span>
+    <span class="tag">&lt;<span class="name">packaging</span>&gt;</span>jar<span class="tag">&lt;/<span class="name">packaging</span>&gt;</span>
+    <span class="comment">&lt;!-- ... --&gt;</span>
+<span class="tag">&lt;/<span class="name">project</span>&gt;</span>
+</code></pre>
+<p>生成的存档在<code>package</code>阶段会被Spring Boot增强。你想启动的main类即可以通过指定一个配置选项，也可以通过为manifest添加一个<code>Main-Class</code>属性这种常规的方式实现。如果你没有指定一个main类，该插件会搜索带有<code>public static void main(String[] args)</code>方法的类。</p>
+<p>为了构建和运行一个项目的artifact，你可以输入以下命令：</p>
+<pre><code class="shell">$ mvn package
+$ java -jar target/mymodule-0.0.1-SNAPSHOT.jar
+</code></pre>
+<p>为了构建一个即是可执行的，又能部署到一个外部容器的war文件，你需要标记内嵌容器依赖为”provided”，例如：</p>
+<pre><code class="xml"><span class="meta">&lt;?xml version="1.0" encoding="UTF-8"?&gt;</span>
+<span class="tag">&lt;<span class="name">project</span> <span class="attr">xmlns</span>=<span class="string">"http://maven.apache.org/POM/4.0.0"</span> <span class="attr">xmlns:xsi</span>=<span class="string">"http://www.w3.org/2001/XMLSchema-instance"</span>
+    <span class="attr">xsi:schemaLocation</span>=<span class="string">"http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"</span>&gt;</span>
+    <span class="comment">&lt;!-- ... --&gt;</span>
+    <span class="tag">&lt;<span class="name">packaging</span>&gt;</span>war<span class="tag">&lt;/<span class="name">packaging</span>&gt;</span>
+    <span class="comment">&lt;!-- ... --&gt;</span>
+    <span class="tag">&lt;<span class="name">dependencies</span>&gt;</span>
+        <span class="tag">&lt;<span class="name">dependency</span>&gt;</span>
+            <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.springframework.boot<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span>
+            <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spring-boot-starter-web<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span>
+        <span class="tag">&lt;/<span class="name">dependency</span>&gt;</span>
+        <span class="tag">&lt;<span class="name">dependency</span>&gt;</span>
+            <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.springframework.boot<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span>
+            <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spring-boot-starter-tomcat<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span>
+            <span class="tag">&lt;<span class="name">scope</span>&gt;</span>provided<span class="tag">&lt;/<span class="name">scope</span>&gt;</span>
+        <span class="tag">&lt;/<span class="name">dependency</span>&gt;</span>
+        <span class="comment">&lt;!-- ... --&gt;</span>
+    <span class="tag">&lt;/<span class="name">dependencies</span>&gt;</span>
+<span class="tag">&lt;/<span class="name">project</span>&gt;</span>
+</code></pre>
+<p><strong>注</strong>：具体参考<a href="http://docs.spring.io/spring-boot/docs/current-SNAPSHOT/reference/htmlsingle/#howto-create-a-deployable-war-file">“Section 74.1, “Create a deployable war file”” </a>章节。 </p>
+<p>在<a href="http://docs.spring.io/spring-boot/docs/1.3.0.BUILD-SNAPSHOT/maven-plugin/">插件信息页面</a>有高级的配置选项和示例。</p>
+<h3 id="Spring_Boot_Gradle_u63D2_u4EF6"><a href="#Spring_Boot_Gradle_u63D2_u4EF6" class="headerlink" title="Spring Boot Gradle插件"></a>Spring Boot Gradle插件</h3><p>Spring Boot Gradle插件为Gradle提供Spring Boot支持，它允许你打包可执行jar或war存档，运行Spring Boot应用，对于”神圣的”依赖可以在你的build.gradle文件中省略版本信息。</p>
+<ul>
+<li>包含该插件</li>
+</ul>
+<p>想要使用Spring Boot Gradle插件，你只需简单的包含一个<code>buildscript</code>依赖，并应用<code>spring-boot</code>插件：</p>
+<pre><code class="gradle"><span class="keyword">buildscript</span> {
+    <span class="keyword">dependencies</span> {
+        <span class="keyword">classpath</span>(<span class="string">"org.springframework.boot:spring-boot-gradle-plugin:1.3.0.BUILD-SNAPSHOT"</span>)
+    }
+}
+apply plugin: <span class="string">'spring-boot'</span>
+</code></pre>
+<p>如果想使用一个里程碑或快照版本，你可以添加相应的repositories引用：</p>
+<pre><code class="gradle"><span class="keyword">buildscript</span> {
+    <span class="keyword">repositories</span> {
+        maven.url <span class="string">"http://repo.spring.io/snapshot"</span>
+        maven.url <span class="string">"http://repo.spring.io/milestone"</span>
+    }
+    <span class="comment">// ...</span>
+}
+</code></pre>
+<ul>
+<li>声明不带版本的依赖</li>
+</ul>
+<p><code>spring-boot</code>插件会为你的构建注册一个自定义的Gradle <code>ResolutionStrategy</code>，它允许你在声明对”神圣”的artifacts的依赖时获取版本号。为了充分使用该功能，只需要想通常那样声明依赖，但将版本号设置为空：</p>
+<pre><code class="gradle"><span class="keyword">dependencies</span> {
+    <span class="keyword">compile</span>(<span class="string">"org.springframework.boot:spring-boot-starter-web"</span>)
+    <span class="keyword">compile</span>(<span class="string">"org.thymeleaf:thymeleaf-spring4"</span>)
+    <span class="keyword">compile</span>(<span class="string">"nz.net.ultraq.thymeleaf:thymeleaf-layout-dialect"</span>)
+}
+</code></pre>
+<p><strong>注</strong>：你声明的<code>spring-boot</code> Gradle插件的版本决定了”blessed”依赖的实际版本（确保可以重复构建）。你最好总是将<code>spring-boot</code> gradle插件版本设置为你想用的Spring Boot实际版本。提供的版本详细信息可以在<a href="http://docs.spring.io/spring-boot/docs/current-SNAPSHOT/reference/htmlsingle/#appendix-dependency-versions">附录</a>中找到。</p>
+<p><code>spring-boot</code>插件对于没有指定版本的依赖只会提供一个版本。如果不想使用插件提供的版本，你可以像平常那样在声明依赖的时候指定版本。例如：</p>
+<pre><code class="gradle"><span class="keyword">dependencies</span> {
+    <span class="keyword">compile</span>(<span class="string">"org.thymeleaf:thymeleaf-spring4:2.1.1.RELEASE"</span>)
+}
+</code></pre>
+<ul>
+<li>自定义版本管理</li>
+</ul>
+<p>如果你需要不同于Spring Boot的”blessed”依赖，有可能的话可以自定义<code>ResolutionStrategy</code>使用的版本。替代的版本元数据使用<code>versionManagement</code>配置。例如：</p>
+<pre><code class="gradle"><span class="keyword">dependencies</span> {
+    versionManagement(<span class="string">"com.mycorp:mycorp-versions:1.0.0.RELEASE@properties"</span>)
+    <span class="keyword">compile</span>(<span class="string">"org.springframework.data:spring-data-hadoop"</span>)
+}
+</code></pre>
+<p>版本信息需要作为一个<code>.properties</code>文件发布到一个仓库中。对于上面的示例，<code>mycorp-versions.properties</code>文件可能包含以下内容：</p>
+<pre><code class="java">org.springframework.data\:spring-data-hadoop=<span class="number">2.0</span>.0.RELEASE
+</code></pre>
+<p>属性文件优先于Spring Boot默认设置，如果有必要的话可以覆盖版本号。</p>
+<ul>
+<li>默认排除规则</li>
+</ul>
+<p>Gradle处理”exclude rules”的方式和Maven稍微有些不同，在使用starter POMs时这可能会引起无法预料的结果。特别地，当一个依赖可以通过不同的路径访问时，对该依赖声明的exclusions将不会生效。例如，如果一个starter POM声明以下内容：</p>
+<pre><code class="xml"><span class="tag">&lt;<span class="name">dependencies</span>&gt;</span>
+    <span class="tag">&lt;<span class="name">dependency</span>&gt;</span>
+        <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.springframework<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span>
+        <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spring-core<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span>
+        <span class="tag">&lt;<span class="name">version</span>&gt;</span>4.0.5.RELEASE<span class="tag">&lt;/<span class="name">version</span>&gt;</span>
+        <span class="tag">&lt;<span class="name">exclusions</span>&gt;</span>
+            <span class="tag">&lt;<span class="name">exclusion</span>&gt;</span>
+                <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>commons-logging<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span>
+                <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>commons-logging<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span>
+            <span class="tag">&lt;/<span class="name">exclusion</span>&gt;</span>
+        <span class="tag">&lt;/<span class="name">exclusions</span>&gt;</span>
+    <span class="tag">&lt;/<span class="name">dependency</span>&gt;</span>
+    <span class="tag">&lt;<span class="name">dependency</span>&gt;</span>
+        <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.springframework<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span>
+        <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spring-context<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span>
+        <span class="tag">&lt;<span class="name">version</span>&gt;</span>4.0.5.RELEASE<span class="tag">&lt;/<span class="name">version</span>&gt;</span>
+    <span class="tag">&lt;/<span class="name">dependency</span>&gt;</span>
+<span class="tag">&lt;/<span class="name">dependencies</span>&gt;</span>
+</code></pre>
+<p><code>commons-logging</code> jar不会被Gradle排除，因为通过没有<code>exclusion</code>元素的<code>spring-context</code>可以传递性的拉取到它（spring-context → spring-core → commons-logging）。</p>
+<p>为了确保正确的排除被实际应用，Spring Boot Gradle插件将自动添加排除规则。所有排除被定义在<code>spring-boot-dependencies</code> POM，并且针对”starter” POMs的隐式规则也会被添加。</p>
+<p>如果不想自动应用排除规则，你可以使用以下配置：</p>
+<pre><code class="gradle">springBoot {
+    applyExcludeRules=<span class="keyword">false</span>
+}
+</code></pre>
+<ul>
+<li>打包可执行jar和war文件</li>
+</ul>
+<p>一旦<code>spring-boot</code>插件被应用到你的项目，它将使用<code>bootRepackage</code>任务自动尝试重写存档以使它们能够执行。为了构建一个jar或war，你需要按通常的方式配置项目。</p>
+<p>你想启动的main类既可以通过一个配置选项指定，也可以通过向manifest添加一个<code>Main-Class</code>属性。如果你没有指定main类，该插件会搜索带有<code>public static void main(String[] args)</code>方法的类。</p>
+<p>为了构建和运行一个项目artifact，你可以输入以下内容：</p>
+<pre><code class="shell">$ gradle build
+$ java -jar build/libs/mymodule-0.0.1-SNAPSHOT.jar
+</code></pre>
+<p>为了构建一个即能执行也可以部署到外部容器的war包，你需要将内嵌容器依赖标记为”providedRuntime”，比如：</p>
+<pre><code class="gradle">...
+apply plugin: <span class="string">'war'</span>
+
+war {
+    baseName = <span class="string">'myapp'</span>
+    version =  <span class="string">'0.5.0'</span>
+}
+
+<span class="keyword">repositories</span> {
+    jcenter()
+    maven { url <span class="string">"http://repo.spring.io/libs-snapshot"</span> }
+}
+
+<span class="keyword">configurations</span> {
+    providedRuntime
+}
+
+<span class="keyword">dependencies</span> {
+    <span class="keyword">compile</span>(<span class="string">"org.springframework.boot:spring-boot-starter-web"</span>)
+    providedRuntime(<span class="string">"org.springframework.boot:spring-boot-starter-tomcat"</span>)
+    ...
+}
+</code></pre>
+<p><strong>注</strong>：具体参考<a href="http://docs.spring.io/spring-boot/docs/current-SNAPSHOT/reference/htmlsingle/#howto-create-a-deployable-war-file">“Section 74.1, “Create a deployable war file””</a>。</p>
+<ul>
+<li>就地（in-place）运行项目</li>
+</ul>
+<p>为了在不先构建jar的情况下运行项目，你可以使用”bootRun”任务：</p>
+<pre><code class="shell">$ gradle bootRun
+</code></pre>
+<p>默认情况下，以这种方式运行项目可以让你的静态classpath资源（比如，默认位于<code>src/main/resources</code>下）在应用运行期间被重新加载。使静态资源可以重新加载意味着<code>bootRun</code>任务不会使用<code>processResources</code>任务的输出，比如，当调用<code>bootRun</code>时，你的应用将以资源未处理的形式来使用它们。</p>
+<p>你可以禁止直接使用静态classpath资源。这意味着资源不再是可重新加载的，但<code>processResources</code>任务的输出将会被使用。想要这样做，只需将<code>bootRun</code>任务的<code>addResources</code>设为false：</p>
+<pre><code class="gradle">bootRun {
+    addResources = <span class="keyword">false</span>
+}
+</code></pre>
+<ul>
+<li>Spring Boot插件配置</li>
+</ul>
+<p>Gradle插件自动扩展你的构建脚本DSL，它为脚本添加一个<code>springBoot</code>元素以此作为Boot插件的全局配置。你可以像配置其他Gradle扩展那样为<code>springBoot</code>设置相应的属性（下面有配置选项列表）。</p>
+<pre><code class="gradle">springBoot {
+    backupSource = <span class="keyword">false</span>
+}
+</code></pre>
+<ul>
+<li>Repackage配置</li>
+</ul>
+<p>该插件添加了一个<code>bootRepackage</code>任务，你可以直接配置它，比如：</p>
+<pre><code class="gradle">bootRepackage {
+    mainClass = <span class="string">'demo.Application'</span>
+}
+</code></pre>
+<p>下面是可用的配置选项：</p>
+<table>
+<thead>
+<tr>
+<th>名称</th>
+<th style="text-align:left">描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>enabled</td>
+<td style="text-align:left">布尔值，用于控制repackager的开关（如果你只想要Boot的其他特性而不是这个，那它就派上用场了）</td>
+</tr>
+<tr>
+<td>mainClass</td>
+<td style="text-align:left">要运行的main类。如果没有指定，则使用project属性<code>mainClassName</code>。如果没有定义<code>mainClassName</code> id，则搜索存档以寻找一个合适的类。”合适”意味着一个唯一的，具有良好格式的<code>main()</code>方法的类（如果找到多个则构建会失败）。你也可以通过”run”任务（<code>main</code>属性）指定main类的名称，和/或将”startScripts”（<code>mainClassName</code>属性）作为”springBoot”配置的替代。</td>
+</tr>
+<tr>
+<td>classifier</td>
+<td style="text-align:left">添加到存档的一个文件名字段（在扩展之前），这样最初保存的存档仍旧存放在最初的位置。在存档被重新打包（repackage）的情况下，该属性默认为null。默认值适用于多数情况，但如果你想在另一个项目中使用原jar作为依赖，最好使用一个扩展来定义该可执行jar</td>
+</tr>
+<tr>
+<td>withJarTask</td>
+<td style="text-align:left"><code>Jar</code>任务的名称或值，用于定位要被repackage的存档</td>
+</tr>
+<tr>
+<td>customConfiguration</td>
+<td style="text-align:left">自定义配置的名称，用于填充内嵌的lib目录（不指定该属性，你将获取所有编译和运行时依赖）</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>使用Gradle自定义配置进行Repackage</li>
+</ul>
+<p>有时候不打包解析自<code>compile</code>，<code>runtime</code>和<code>provided</code>作用域的默认依赖可能更合适些。如果创建的可执行jar被原样运行，你需要将所有的依赖内嵌进该jar中；然而，如果目的是explode一个jar文件，并手动运行main类，你可能在<code>CLASSPATH</code>下已经有一些可用的库了。在这种情况下，你可以使用不同的依赖集重新打包（repackage）你的jar。</p>
+<p>使用自定义的配置将自动禁用来自<code>compile</code>，<code>runtime</code>和<code>provided</code>作用域的依赖解析。自定义配置即可以定义为全局的（处于<code>springBoot</code>部分内），也可以定义为任务级的。</p>
+<pre><code class="gradle"><span class="keyword">task</span> clientJar(type: Jar) {
+    appendix = <span class="string">'client'</span>
+    <span class="keyword">from</span> <span class="keyword">sourceSets</span>.main.output
+    <span class="keyword">exclude</span>(<span class="string">'**/*Something*'</span>)
+}
+
+<span class="keyword">task</span> clientBoot(type: BootRepackage, dependsOn: clientJar) {
+    withJarTask = clientJar
+    customConfiguration = <span class="string">"mycustomconfiguration"</span>
+}
+</code></pre>
+<p>在以上示例中，我们创建了一个新的<code>clientJar</code> Jar任务从你编译后的源中打包一个自定义文件集。然后我们创建一个新的<code>clientBoot</code> BootRepackage任务，并让它使用<code>clientJar</code>任务和<code>mycustomconfiguration</code>。</p>
+<pre><code class="gradle"><span class="keyword">configurations</span> {
+    mycustomconfiguration.<span class="keyword">exclude</span> <span class="keyword">group</span>: <span class="string">'log4j'</span>
+}
+
+<span class="keyword">dependencies</span> {
+    mycustomconfiguration <span class="keyword">configurations</span>.<span class="keyword">runtime</span>
+}
+</code></pre>
+<p>在<code>BootRepackage</code>中引用的配置是一个正常的<a href="http://www.gradle.org/docs/current/dsl/org.gradle.api.artifacts.Configuration.html">Gradle配置</a>。在上面的示例中，我们创建了一个新的名叫<code>mycustomconfiguration</code>的配置，指示它来自一个<code>runtime</code>，并排除对<code>log4j</code>的依赖。如果<code>clientBoot</code>任务被执行，重新打包的jar将含有所有来自<code>runtime</code>作用域的依赖，除了<code>log4j</code> jars。</p>
+<ul>
+<li>配置选项</li>
+</ul>
+<p>可用的配置选项如下：</p>
+<table>
+<thead>
+<tr>
+<th>名称</th>
+<th style="text-align:left">描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>mainClass</td>
+<td style="text-align:left">可执行jar运行的main类</td>
+</tr>
+<tr>
+<td>providedConfiguration</td>
+<td style="text-align:left">provided配置的名称（默认为providedRuntime）</td>
+</tr>
+<tr>
+<td>backupSource</td>
+<td style="text-align:left">在重新打包之前，原先的存档是否备份（默认为true）</td>
+</tr>
+<tr>
+<td>customConfiguration</td>
+<td style="text-align:left">自定义配置的名称</td>
+</tr>
+<tr>
+<td>layout</td>
+<td style="text-align:left">存档类型，对应于内部依赖是如何制定的（默认基于存档类型进行推测）</td>
+</tr>
+<tr>
+<td>requiresUnpack</td>
+<td style="text-align:left">一个依赖列表（格式为”groupId:artifactId”，为了运行，它们需要从fat jars中解压出来。）所有节点被打包进胖jar，但运行的时候它们将被自动解压</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>理解Gradle插件是如何工作的</li>
+</ul>
+<p>当<code>spring-boot</code>被应用到你的Gradle项目，一个默认的名叫<code>bootRepackage</code>的任务被自动创建。<code>bootRepackage</code>任务依赖于Gradle <code>assemble</code>任务，当执行时，它会尝试找到所有限定符为空的jar artifacts（也就是说，tests和sources jars被自动跳过）。</p>
+<p>由于<code>bootRepackage</code>查找’所有’创建jar artifacts的事实，Gradle任务执行的顺序就非常重要了。多数项目只创建一个单一的jar文件，所以通常这不是一个问题。然而，如果你正打算创建一个更复杂的，使用自定义<code>jar</code>和<code>BootRepackage</code>任务的项目setup，有几个方面需要考虑。</p>
+<p>如果’仅仅’从项目创建自定义jar文件，你可以简单地禁用默认的<code>jar</code>和<code>bootRepackage</code>任务：</p>
+<pre><code class="gradle">jar.enabled = <span class="keyword">false</span>
+bootRepackage.enabled = <span class="keyword">false</span>
+</code></pre>
+<p>另一个选项是指示默认的<code>bootRepackage</code>任务只能使用一个默认的<code>jar</code>任务：</p>
+<pre><code class="gradle">bootRepackage.withJarTask = jar
+</code></pre>
+<p>如果你有一个默认的项目setup，在该项目中，主（main）jar文件被创建和重新打包。并且，你仍旧想创建额外的自定义jars，你可以将自定义的repackage任务结合起来，然后使用<code>dependsOn</code>，这样<code>bootJars</code>任务就会在默认的<code>bootRepackage</code>任务执行以后运行：</p>
+<pre><code class="gradle"><span class="keyword">task</span> bootJars
+bootJars.dependsOn = [clientBoot1,clientBoot2,clientBoot3]
+build.dependsOn(bootJars)
+</code></pre>
+<p>上面所有方面经常用于避免一个已经创建的boot jar又被重新打包的情况。重新打包一个存在的boot jar不是什么大问题，但你可能会发现它包含不必要的依赖。</p>
+<ul>
+<li>使用Gradle将artifacts发布到一个Maven仓库</li>
+</ul>
+<p>如果你声明依赖但没有指定版本，且你想要将artifacts发布到一个Maven仓库，那你需要使用详细的Spring Boot依赖管理来配置Maven发布。通过配置它发布继承自<code>spring-boot-starter-parent</code>的poms或引入来自<code>spring-boot-dependencies</code>的依赖管理可以实现该需求。这种配置的具体细节取决于你如何使用Gradle及如何发布该artifacts的。</p>
+<ul>
+<li>自定义Gradle，用于产生一个继承依赖管理的pom</li>
+</ul>
+<p>下面示例展示了如何配置Gradle去产生一个继承自<code>spring-boot-starter-parent</code>的pom。请参考<a href="http://gradle.org/docs/current/userguide/userguide.html">Gradle用户指南</a>获取更多信息。</p>
+<pre><code class="gradle">uploadArchives {
+    <span class="keyword">repositories</span> {
+        mavenDeployer {
+            pom {
+                <span class="keyword">project</span> {
+                    parent {
+                        groupId <span class="string">"org.springframework.boot"</span>
+                        artifactId <span class="string">"spring-boot-starter-parent"</span>
+                        version <span class="string">"1.3.0.BUILD-SNAPSHOT"</span>
+                    }
+                }
+            }
+        }
+    }
+}
+</code></pre>
+<ul>
+<li>自定义Gradle，用于产生一个导入依赖管理的pom</li>
+</ul>
+<p>以下示例展示了如何配置Gradle去产生一个导入<code>spring-boot-dependencies</code>提供的依赖管理的pom。请参考<a href="http://gradle.org/docs/current/userguide/userguide.html">Gradle用户指南</a>获取更多信息。</p>
+<pre><code class="gradle">uploadArchives {
+    <span class="keyword">repositories</span> {
+        mavenDeployer {
+            pom {
+                <span class="keyword">project</span> {
+                    dependencyManagement {
+                        <span class="keyword">dependencies</span> {
+                            dependency {
+                                groupId <span class="string">"org.springframework.boot"</span>
+                                artifactId <span class="string">"spring-boot-dependencies"</span>
+                                version <span class="string">"1.3.0.BUILD-SNAPSHOT"</span>
+                                type <span class="string">"pom"</span>
+                                scope <span class="string">"import"</span>
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+</code></pre>
+<h3 id="u5BF9_u5176_u4ED6_u6784_u5EFA_u7CFB_u7EDF_u7684_u652F_u6301"><a href="#u5BF9_u5176_u4ED6_u6784_u5EFA_u7CFB_u7EDF_u7684_u652F_u6301" class="headerlink" title="对其他构建系统的支持"></a>对其他构建系统的支持</h3><p>如果想使用除了Maven和Gradle之外的构建工具，你可能需要开发自己的插件。可执行jars需要遵循一个特定格式，并且一些实体需要以不压缩的方式写入（详情查看附录中的<a href="http://docs.spring.io/spring-boot/docs/current-SNAPSHOT/reference/htmlsingle/#executable-jar">可执行jar格式</a>章节）。</p>
+<p>Spring Boot Maven和Gradle插件都利用<code>spring-boot-loader-tools</code>来实际地产生jars。如果需要，你也可以自由地直接使用该库。</p>
+<ul>
+<li>重新打包存档</li>
+</ul>
+<p>使用<code>org.springframework.boot.loader.tools.Repackager</code>可以将一个存在的存档重新打包，这样它就变成一个自包含的可执行存档。<code>Repackager</code>类需要提供单一的构造器参数，它引用一个存在的jar或war包。使用两个可用的<code>repackage()</code>方法中的一个来替换原始的文件或写入一个新的目标。在repackager运行前还可以设置各种配置。</p>
+<ul>
+<li>内嵌的库</li>
+</ul>
+<p>当重新打包一个存档时，你可以使用<code>org.springframework.boot.loader.tools.Libraries</code>接口来包含对依赖文件的引用。在这里我们不提供任何该Libraries接口的具体实现，因为它们通常跟具体的构建系统相关。</p>
+<p>如果你的存档已经包含libraries，你可以使用<code>Libraries.NONE</code>。</p>
+<ul>
+<li>查找main类</li>
+</ul>
+<p>如果你没有使用<code>Repackager.setMainClass()</code>指定一个main类，该repackager将使用<a href="http://asm.ow2.org/">ASM</a>去读取class文件，然后尝试查找一个合适的，具有<code>public static void main(String[] args)</code>方法的类。如果发现多个候选者，将会抛出异常。</p>
+<ul>
+<li>repackage实现示例</li>
+</ul>
+<p>这里是一个传统的repackage示例：</p>
+<pre><code class="java">Repackager repackager = <span class="keyword">new</span> Repackager(sourceJarFile);
+repackager.setBackupSource(<span class="keyword">false</span>);
+repackager.repackage(<span class="keyword">new</span> Libraries() {
+            <span class="meta">@Override</span>
+            <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">doWithLibraries</span><span class="params">(LibraryCallback callback)</span> <span class="keyword">throws</span> IOException </span>{
+                <span class="comment">// Build system specific implementation, callback for each dependency</span>
+                <span class="comment">// callback.library(new Library(nestedFile, LibraryScope.COMPILE));</span>
+            }
+        });
+</code></pre>

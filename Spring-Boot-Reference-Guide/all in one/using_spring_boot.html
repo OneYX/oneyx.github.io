@@ -1,0 +1,470 @@
+<h3 id="u4F7F_u7528Spring_Boot"><a href="#u4F7F_u7528Spring_Boot" class="headerlink" title="使用Spring Boot"></a>使用Spring Boot</h3><p>本章节将会详细介绍如何使用Spring Boot。它覆盖了构建系统，自动配置和运行/部署选项等主题。我们也覆盖了一些Spring Boot最佳实践。尽管Spring Boot没有什么特别的（只是一个你能消费的库），但仍有一些建议，如果你遵循的话将会让你的开发进程更容易。</p>
+<p>如果你刚接触Spring Boot，那最好先读下上一章节的<a href="http://docs.spring.io/spring-boot/docs/current-SNAPSHOT/reference/htmlsingle/#getting-started">Getting Started</a>指南。</p>
+<h3 id="u6784_u5EFA_u7CFB_u7EDF"><a href="#u6784_u5EFA_u7CFB_u7EDF" class="headerlink" title="构建系统"></a>构建系统</h3><p>强烈建议你选择一个支持依赖管理，能消费发布到Maven中央仓库的artifacts的构建系统。我们推荐你选择Maven或Gradle。选择其他构建系统来使用Spring Boot也是可能的（比如Ant），但它们不会被很好的支持。</p>
+<ul>
+<li>Maven</li>
+</ul>
+<p>Maven用户可以继承<code>spring-boot-starter-parent</code>项目来获取合适的默认设置。该父项目提供以下特性：</p>
+<ul>
+<li>默认编译级别为Java 1.6</li>
+<li>源码编码为UTF-8</li>
+<li>一个依赖管理节点，允许你省略普通依赖的<code>&lt;version&gt;</code>标签，继承自<code>spring-boot-dependencies</code> POM。</li>
+<li>合适的<a href="https://maven.apache.org/plugins/maven-resources-plugin/examples/filter.html">资源过滤</a></li>
+<li>合适的插件配置（<a href="http://mojo.codehaus.org/exec-maven-plugin/">exec插件</a>，<a href="http://maven.apache.org/surefire/maven-surefire-plugin/">surefire</a>，<a href="https://github.com/ktoso/maven-git-commit-id-plugin">Git commit ID</a>，<a href="http://maven.apache.org/plugins/maven-shade-plugin/">shade</a>）</li>
+<li>针对<code>application.properties</code>和<code>application.yml</code>的资源过滤</li>
+</ul>
+<p>最后一点：由于默认配置文件接收Spring风格的占位符（<code>${...}</code>），Maven filtering改用<code>@..@</code>占位符（你可以使用Maven属性<code>resource.delimiter</code>来覆盖它）。</p>
+<ul>
+<li>继承starter parent</li>
+</ul>
+<p>想配置你的项目继承<code>spring-boot-starter-parent</code>只需要简单地设置<code>parent</code>为：</p>
+<pre><code class="xml"><span class="comment">&lt;!-- Inherit defaults from Spring Boot --&gt;</span>
+<span class="tag">&lt;<span class="name">parent</span>&gt;</span>
+    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.springframework.boot<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span>
+    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spring-boot-starter-parent<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span>
+    <span class="tag">&lt;<span class="name">version</span>&gt;</span>1.3.0.BUILD-SNAPSHOT<span class="tag">&lt;/<span class="name">version</span>&gt;</span>
+<span class="tag">&lt;/<span class="name">parent</span>&gt;</span>
+</code></pre>
+<p><strong>注</strong>：你应该只需要在该依赖上指定Spring Boot版本。如果导入其他的starters，你可以放心的省略版本号。</p>
+<ul>
+<li>使用没有父POM的Spring Boot</li>
+</ul>
+<p>不是每个人都喜欢继承<code>spring-boot-starter-parent</code> POM。你可能需要使用公司标准parent，或你可能倾向于显式声明所有Maven配置。</p>
+<p>如果你不使用<code>spring-boot-starter-parent</code>，通过使用一个<code>scope=import</code>的依赖，你仍能获取到依赖管理的好处：</p>
+<pre><code class="xml"><span class="tag">&lt;<span class="name">dependencyManagement</span>&gt;</span>
+     <span class="tag">&lt;<span class="name">dependencies</span>&gt;</span>
+        <span class="tag">&lt;<span class="name">dependency</span>&gt;</span>
+            <span class="comment">&lt;!-- Import dependency management from Spring Boot --&gt;</span>
+            <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.springframework.boot<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span>
+            <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spring-boot-dependencies<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span>
+            <span class="tag">&lt;<span class="name">version</span>&gt;</span>1.3.0.BUILD-SNAPSHOT<span class="tag">&lt;/<span class="name">version</span>&gt;</span>
+            <span class="tag">&lt;<span class="name">type</span>&gt;</span>pom<span class="tag">&lt;/<span class="name">type</span>&gt;</span>
+            <span class="tag">&lt;<span class="name">scope</span>&gt;</span>import<span class="tag">&lt;/<span class="name">scope</span>&gt;</span>
+        <span class="tag">&lt;/<span class="name">dependency</span>&gt;</span>
+    <span class="tag">&lt;/<span class="name">dependencies</span>&gt;</span>
+<span class="tag">&lt;/<span class="name">dependencyManagement</span>&gt;</span>
+</code></pre>
+<ul>
+<li>改变Java版本 </li>
+</ul>
+<p><code>spring-boot-starter-parent</code>选择相当保守的Java兼容策略。如果你遵循我们的建议，使用最新的Java版本，你可以添加一个<code>java.version</code>属性：</p>
+<pre><code class="xml"><span class="tag">&lt;<span class="name">properties</span>&gt;</span>
+    <span class="tag">&lt;<span class="name">java.version</span>&gt;</span>1.8<span class="tag">&lt;/<span class="name">java.version</span>&gt;</span>
+<span class="tag">&lt;/<span class="name">properties</span>&gt;</span>
+</code></pre>
+<ul>
+<li>使用Spring Boot Maven插件</li>
+</ul>
+<p>Spring Boot包含一个<a href="http://docs.spring.io/spring-boot/docs/current-SNAPSHOT/reference/htmlsingle/#build-tool-plugins-maven-plugin">Maven插件</a>，它可以将项目打包成一个可执行jar。如果想使用它，你可以将该插件添加到<code>&lt;plugins&gt;</code>节点处：</p>
+<pre><code class="xml"><span class="tag">&lt;<span class="name">build</span>&gt;</span>
+    <span class="tag">&lt;<span class="name">plugins</span>&gt;</span>
+        <span class="tag">&lt;<span class="name">plugin</span>&gt;</span>
+            <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.springframework.boot<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span>
+            <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spring-boot-maven-plugin<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span>
+        <span class="tag">&lt;/<span class="name">plugin</span>&gt;</span>
+    <span class="tag">&lt;/<span class="name">plugins</span>&gt;</span>
+<span class="tag">&lt;/<span class="name">build</span>&gt;</span>
+</code></pre>
+<p><strong>注</strong>：如果使用Spring Boot starter parent pom，你只需要添加该插件而无需配置它，除非你想改变定义在partent中的设置。</p>
+<ul>
+<li>Gradle</li>
+</ul>
+<p>Gradle用户可以直接在它们的<code>dependencies</code>节点处导入”starter POMs“。跟Maven不同的是，这里没有用于导入共享配置的”超父”（super parent）。</p>
+<pre><code class="gradle">apply plugin: <span class="string">'java'</span>
+
+<span class="keyword">repositories</span> { jcenter() }
+<span class="keyword">dependencies</span> {
+    <span class="keyword">compile</span>(<span class="string">"org.springframework.boot:spring-boot-starter-web:1.3.0.BUILD-SNAPSHOT"</span>)
+}
+</code></pre>
+<p><a href="http://docs.spring.io/spring-boot/docs/current-SNAPSHOT/reference/htmlsingle/#build-tool-plugins-gradle-plugin">spring-boot-gradle-plugin</a>插件也是可以使用的，它提供创建可执行jar和从source运行项目的任务。它也添加了一个<code>ResolutionStrategy</code>用于让你省略常用依赖的版本号：</p>
+<pre><code class="gradle"><span class="keyword">buildscript</span> {
+    <span class="keyword">repositories</span> { jcenter() }
+    <span class="keyword">dependencies</span> {
+        <span class="keyword">classpath</span>(<span class="string">"org.springframework.boot:spring-boot-gradle-plugin:1.3.0.BUILD-SNAPSHOT"</span>)
+    }
+}
+
+apply plugin: <span class="string">'java'</span>
+apply plugin: <span class="string">'spring-boot'</span>
+
+<span class="keyword">repositories</span> { jcenter() }
+<span class="keyword">dependencies</span> {
+    <span class="keyword">compile</span>(<span class="string">"org.springframework.boot:spring-boot-starter-web"</span>)
+    testCompile(<span class="string">"org.springframework.boot:spring-boot-starter-test"</span>)
+}
+</code></pre>
+<ul>
+<li>Ant</li>
+</ul>
+<p>使用Apache Ant构建一个Spring Boot项目是完全可能的，然而，Spring Boot没有为它提供特殊的支持或插件。Ant脚本可以使用Ivy依赖管理系统来导入starter POMs。</p>
+<p>查看<a href="http://docs.spring.io/spring-boot/docs/current-SNAPSHOT/reference/htmlsingle/#howto-build-an-executable-archive-with-ant">Section 73.8, “Build an executable archive with Ant”</a>获取更多指导。</p>
+<ul>
+<li>Starter POMs</li>
+</ul>
+<p>Starter POMs是可以包含到应用中的一个方便的依赖关系描述符集合。你可以获取所有Spring及相关技术的一站式服务，而不需要翻阅示例代码，拷贝粘贴大量的依赖描述符。例如，如果你想使用Spring和JPA进行数据库访问，只需要在你的项目中包含<code>spring-boot-starter-data-jpa</code>依赖，然后你就可以开始了。</p>
+<p>该starters包含很多你搭建项目，快速运行所需的依赖，并提供一致的，管理的传递依赖集。</p>
+<p><strong>名字有什么含义</strong>：所有的starters遵循一个相似的命名模式：<code>spring-boot-starter-*</code>，在这里<code>*</code>是一种特殊类型的应用程序。该命名结构旨在帮你找到需要的starter。很多IDEs集成的Maven允许你通过名称搜索依赖。例如，使用相应的Eclipse或STS插件，你可以简单地在POM编辑器中点击<code>ctrl-space</code>，然后输入”spring-boot-starter”可以获取一个完整列表。</p>
+<p>下面的应用程序starters是Spring Boot在<code>org.springframework.boot</code>组下提供的：</p>
+<p><strong>表 13.1. Spring Boot application starters</strong> </p>
+<table>
+<thead>
+<tr>
+<th>名称</th>
+<th style="text-align:left">描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>spring-boot-starter</td>
+<td style="text-align:left">核心Spring Boot starter，包括自动配置支持，日志和YAML</td>
+</tr>
+<tr>
+<td>spring-boot-starter-actuator</td>
+<td style="text-align:left">生产准备的特性，用于帮你监控和管理应用</td>
+</tr>
+<tr>
+<td>spring-boot-starter-amqp</td>
+<td style="text-align:left">对”高级消息队列协议”的支持，通过<code>spring-rabbit</code>实现</td>
+</tr>
+<tr>
+<td>spring-boot-starter-aop</td>
+<td style="text-align:left">对面向切面编程的支持，包括<code>spring-aop</code>和AspectJ</td>
+</tr>
+<tr>
+<td>spring-boot-starter-batch</td>
+<td style="text-align:left">对Spring Batch的支持，包括HSQLDB数据库</td>
+</tr>
+<tr>
+<td>spring-boot-starter-cloud-connectors</td>
+<td style="text-align:left">对Spring Cloud Connectors的支持，简化在云平台下（例如，Cloud Foundry 和Heroku）服务的连接</td>
+</tr>
+<tr>
+<td>spring-boot-starter-data-elasticsearch</td>
+<td style="text-align:left">对Elasticsearch搜索和分析引擎的支持，包括<code>spring-data-elasticsearch</code></td>
+</tr>
+<tr>
+<td>spring-boot-starter-data-gemfire</td>
+<td style="text-align:left">对GemFire分布式数据存储的支持，包括<code>spring-data-gemfire</code></td>
+</tr>
+<tr>
+<td>spring-boot-starter-data-jpa</td>
+<td style="text-align:left">对”Java持久化API”的支持，包括<code>spring-data-jpa</code>，<code>spring-orm</code>和Hibernate</td>
+</tr>
+<tr>
+<td>spring-boot-starter-data-mongodb</td>
+<td style="text-align:left">对MongoDB NOSQL数据库的支持，包括<code>spring-data-mongodb</code></td>
+</tr>
+<tr>
+<td>spring-boot-starter-data-rest</td>
+<td style="text-align:left">对通过REST暴露Spring Data仓库的支持，通过<code>spring-data-rest-webmvc</code>实现</td>
+</tr>
+<tr>
+<td>spring-boot-starter-data-solr</td>
+<td style="text-align:left">对Apache Solr搜索平台的支持，包括<code>spring-data-solr</code></td>
+</tr>
+<tr>
+<td>spring-boot-starter-freemarker</td>
+<td style="text-align:left">对FreeMarker模板引擎的支持</td>
+</tr>
+<tr>
+<td>spring-boot-starter-groovy-templates</td>
+<td style="text-align:left">对Groovy模板引擎的支持</td>
+</tr>
+<tr>
+<td>spring-boot-starter-hateoas</td>
+<td style="text-align:left">对基于HATEOAS的RESTful服务的支持，通过<code>spring-hateoas</code>实现</td>
+</tr>
+<tr>
+<td>spring-boot-starter-hornetq</td>
+<td style="text-align:left">对”Java消息服务API”的支持，通过HornetQ实现</td>
+</tr>
+<tr>
+<td>spring-boot-starter-integration</td>
+<td style="text-align:left">对普通<code>spring-integration</code>模块的支持</td>
+</tr>
+<tr>
+<td>spring-boot-starter-jdbc</td>
+<td style="text-align:left">对JDBC数据库的支持</td>
+</tr>
+<tr>
+<td>spring-boot-starter-jersey</td>
+<td style="text-align:left">对Jersey RESTful Web服务框架的支持</td>
+</tr>
+<tr>
+<td>spring-boot-starter-jta-atomikos</td>
+<td style="text-align:left">对JTA分布式事务的支持，通过Atomikos实现</td>
+</tr>
+<tr>
+<td>spring-boot-starter-jta-bitronix</td>
+<td style="text-align:left">对JTA分布式事务的支持，通过Bitronix实现</td>
+</tr>
+<tr>
+<td>spring-boot-starter-mail</td>
+<td style="text-align:left">对<code>javax.mail</code>的支持</td>
+</tr>
+<tr>
+<td>spring-boot-starter-mobile</td>
+<td style="text-align:left">对<code>spring-mobile</code>的支持</td>
+</tr>
+<tr>
+<td>spring-boot-starter-mustache</td>
+<td style="text-align:left">对Mustache模板引擎的支持</td>
+</tr>
+<tr>
+<td>spring-boot-starter-redis</td>
+<td style="text-align:left">对REDIS键值数据存储的支持，包括<code>spring-redis</code></td>
+</tr>
+<tr>
+<td>spring-boot-starter-security</td>
+<td style="text-align:left">对<code>spring-security</code>的支持</td>
+</tr>
+<tr>
+<td>spring-boot-starter-social-facebook</td>
+<td style="text-align:left">对<code>spring-social-facebook</code>的支持</td>
+</tr>
+<tr>
+<td>spring-boot-starter-social-linkedin</td>
+<td style="text-align:left">对<code>spring-social-linkedin</code>的支持</td>
+</tr>
+<tr>
+<td>spring-boot-starter-social-twitter</td>
+<td style="text-align:left">对<code>spring-social-twitter</code>的支持</td>
+</tr>
+<tr>
+<td>spring-boot-starter-test</td>
+<td style="text-align:left">对常用测试依赖的支持，包括JUnit, Hamcrest和Mockito，还有<code>spring-test</code>模块</td>
+</tr>
+<tr>
+<td>spring-boot-starter-thymeleaf</td>
+<td style="text-align:left">对Thymeleaf模板引擎的支持，包括和Spring的集成</td>
+</tr>
+<tr>
+<td>spring-boot-starter-velocity</td>
+<td style="text-align:left">对Velocity模板引擎的支持</td>
+</tr>
+<tr>
+<td>spring-boot-starter-web</td>
+<td style="text-align:left">对全栈web开发的支持，包括Tomcat和<code>spring-webmvc</code></td>
+</tr>
+<tr>
+<td>spring-boot-starter-websocket</td>
+<td style="text-align:left">对WebSocket开发的支持</td>
+</tr>
+<tr>
+<td>spring-boot-starter-ws</td>
+<td style="text-align:left">对Spring Web服务的支持</td>
+</tr>
+</tbody>
+</table>
+<p>除了应用程序的starters，下面的starters可以用于添加<a href="http://docs.spring.io/spring-boot/docs/current-SNAPSHOT/reference/htmlsingle/#production-ready">生产准备</a>的特性。</p>
+<p><strong>表 13.2. Spring Boot生产准备的starters</strong></p>
+<table>
+<thead>
+<tr>
+<th>名称</th>
+<th style="text-align:left">描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>spring-boot-starter-actuator</td>
+<td style="text-align:left">添加生产准备特性，比如指标和监控</td>
+</tr>
+<tr>
+<td>spring-boot-starter-remote-shell</td>
+<td style="text-align:left">添加远程<code>ssh</code> shell支持</td>
+</tr>
+</tbody>
+</table>
+<p>最后，Spring Boot包含一些可用于排除或交换具体技术方面的starters。</p>
+<p><strong>表 13.3. Spring Boot technical starters</strong></p>
+<table>
+<thead>
+<tr>
+<th>名称</th>
+<th style="text-align:left">描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>spring-boot-starter-jetty</td>
+<td style="text-align:left">导入Jetty HTTP引擎（作为Tomcat的替代）</td>
+</tr>
+<tr>
+<td>spring-boot-starter-log4j</td>
+<td style="text-align:left">对Log4J日志系统的支持</td>
+</tr>
+<tr>
+<td>spring-boot-starter-logging</td>
+<td style="text-align:left">导入Spring Boot的默认日志系统（Logback）</td>
+</tr>
+<tr>
+<td>spring-boot-starter-tomcat</td>
+<td style="text-align:left">导入Spring Boot的默认HTTP引擎（Tomcat）</td>
+</tr>
+<tr>
+<td>spring-boot-starter-undertow</td>
+<td style="text-align:left">导入Undertow HTTP引擎（作为Tomcat的替代）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>注</strong>：查看GitHub上位于<code>spring-boot-starters</code>模块内的<a href="http://github.com/spring-projects/spring-boot/tree/master/spring-boot-starters/README.adoc">README文件</a>，可以获取到一个社区贡献的其他starter POMs列表。</p>
+<h3 id="u7EC4_u7EC7_u4F60_u7684_u4EE3_u7801"><a href="#u7EC4_u7EC7_u4F60_u7684_u4EE3_u7801" class="headerlink" title="组织你的代码"></a>组织你的代码</h3><p>Spring Boot不需要使用任何特殊的代码结构，然而，这里有一些有用的最佳实践。</p>
+<ul>
+<li>使用”default”包</li>
+</ul>
+<p>当类没有包含<code>package</code>声明时，它被认为处于<code>default package</code>下。通常不推荐使用<code>default package</code>，并应该避免使用它。因为对于使用<code>@ComponentScan</code>，<code>@EntityScan</code>或<code>@SpringBootApplication</code>注解的Spring Boot应用来说，来自每个jar的类都会被读取，这会造成一定的问题。</p>
+<p><strong>注</strong>：我们建议你遵循Java推荐的包命名规范，使用一个反转的域名（例如<code>com.example.project</code>）。</p>
+<ul>
+<li>定位main应用类</li>
+</ul>
+<p>我们通常建议你将main应用类放在位于其他类上面的根包（root package）中。通常使用<code>@EnableAutoConfiguration</code>注解你的main类，并且暗地里为某些项定义了一个基础“search package”。例如，如果你正在编写一个JPA应用，被<code>@EnableAutoConfiguration</code>注解的类所在包将被用来搜索<code>@Entity</code>项。</p>
+<p>使用根包允许你使用<code>@ComponentScan</code>注解而不需要定义一个<code>basePackage</code>属性。如果main类位于根包中，你也可以使用<code>@SpringBootApplication</code>注解。</p>
+<p>下面是一个典型的结构：</p>
+<pre><code class="shell">com
+ +- example
+     +- myproject
+         +- Application.java
+         |
+         +- domain
+         |   +- Customer.java
+         |   +- CustomerRepository.java
+         |
+         +- service
+         |   +- CustomerService.java
+         |
+         +- web
+             +- CustomerController.java
+</code></pre>
+<p><code>Application.java</code>文件将声明<code>main</code>方法，还有基本的<code>@Configuration</code>。</p>
+<pre><code class="java"><span class="keyword">package</span> com.example.myproject;
+
+<span class="keyword">import</span> org.springframework.boot.SpringApplication;
+<span class="keyword">import</span> org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+<span class="keyword">import</span> org.springframework.context.annotation.ComponentScan;
+<span class="keyword">import</span> org.springframework.context.annotation.Configuration;
+
+<span class="meta">@Configuration</span>
+<span class="meta">@EnableAutoConfiguration</span>
+<span class="meta">@ComponentScan</span>
+<span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Application</span> </span>{
+
+    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>{
+        SpringApplication.run(Application.class, args);
+    }
+
+}
+</code></pre>
+<h3 id="u914D_u7F6E_u7C7B"><a href="#u914D_u7F6E_u7C7B" class="headerlink" title="配置类"></a>配置类</h3><p>Spring Boot提倡基于Java的配置。尽管你可以使用一个XML源来调用<code>SpringApplication.run()</code>，我们通常建议你使用<code>@Configuration</code>类作为主要源。一般定义<code>main</code>方法的类也是主要<code>@Configuration</code>的一个很好候选。</p>
+<p><strong>注</strong>：很多使用XML配置的Spring配置示例已经被发布到网络上。你应该总是尽可能的使用基于Java的配置。搜索查看<code>enable*</code>注解就是一个好的开端。</p>
+<ul>
+<li>导入其他配置类</li>
+</ul>
+<p>你不需要将所有的<code>@Configuration</code>放进一个单独的类。<code>@Import</code>注解可以用来导入其他配置类。另外，你也可以使用<code>@ComponentScan</code>注解自动收集所有的Spring组件，包括<code>@Configuration</code>类。</p>
+<ul>
+<li>导入XML配置</li>
+</ul>
+<p>如果你绝对需要使用基于XML的配置，我们建议你仍旧从一个<code>@Configuration</code>类开始。你可以使用附加的<code>@ImportResource</code>注解加载XML配置文件。</p>
+<h3 id="u81EA_u52A8_u914D_u7F6E"><a href="#u81EA_u52A8_u914D_u7F6E" class="headerlink" title="自动配置"></a>自动配置</h3><p>Spring Boot自动配置（auto-configuration）尝试根据你添加的jar依赖自动配置你的Spring应用。例如，如果你的classpath下存在<code>HSQLDB</code>，并且你没有手动配置任何数据库连接beans，那么我们将自动配置一个内存型（in-memory）数据库。</p>
+<p>你可以通过将<code>@EnableAutoConfiguration</code>或<code>@SpringBootApplication</code>注解添加到一个<code>@Configuration</code>类上来选择自动配置。</p>
+<p><strong>注</strong>：你只需要添加一个<code>@EnableAutoConfiguration</code>注解。我们建议你将它添加到主<code>@Configuration</code>类上。</p>
+<ul>
+<li>逐步替换自动配置</li>
+</ul>
+<p>自动配置是非侵占性的，任何时候你都可以定义自己的配置类来替换自动配置的特定部分。例如，如果你添加自己的<code>DataSource</code>  bean，默认的内嵌数据库支持将不被考虑。</p>
+<p>如果需要找出当前应用了哪些自动配置及应用的原因，你可以使用<code>--debug</code>开关启动应用。这将会记录一个自动配置的报告并输出到控制台。</p>
+<ul>
+<li>禁用特定的自动配置</li>
+</ul>
+<p>如果发现应用了你不想要的特定自动配置类，你可以使用<code>@EnableAutoConfiguration</code>注解的排除属性来禁用它们。</p>
+<pre><code class="java"><span class="keyword">import</span> org.springframework.boot.autoconfigure.*;
+<span class="keyword">import</span> org.springframework.boot.autoconfigure.jdbc.*;
+<span class="keyword">import</span> org.springframework.context.annotation.*;
+
+<span class="meta">@Configuration</span>
+<span class="meta">@EnableAutoConfiguration</span>(exclude={DataSourceAutoConfiguration.class})
+<span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">MyConfiguration</span> </span>{
+}
+</code></pre>
+<h3 id="Spring_Beans_u548C_u4F9D_u8D56_u6CE8_u5165"><a href="#Spring_Beans_u548C_u4F9D_u8D56_u6CE8_u5165" class="headerlink" title="Spring Beans和依赖注入"></a>Spring Beans和依赖注入</h3><p>你可以自由地使用任何标准的Spring框架技术去定义beans和它们注入的依赖。简单起见，我们经常使用<code>@ComponentScan</code>注解搜索beans，并结合<code>@Autowired</code>构造器注入。</p>
+<p>如果使用上面建议的结构组织代码（将应用类放到根包下），你可以添加<code>@ComponentScan</code>注解而不需要任何参数。你的所有应用程序组件（<code>@Component</code>, <code>@Service</code>, <code>@Repository</code>, <code>@Controller</code>等）将被自动注册为Spring Beans。</p>
+<p>下面是一个<code>@Service</code> Bean的示例，它使用构建器注入获取一个需要的<code>RiskAssessor</code> bean。</p>
+<pre><code class="java"><span class="keyword">package</span> com.example.service;
+
+<span class="keyword">import</span> org.springframework.beans.factory.annotation.Autowired;
+<span class="keyword">import</span> org.springframework.stereotype.Service;
+
+<span class="meta">@Service</span>
+<span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">DatabaseAccountService</span> <span class="keyword">implements</span> <span class="title">AccountService</span> </span>{
+
+    <span class="keyword">private</span> <span class="keyword">final</span> RiskAssessor riskAssessor;
+
+    <span class="meta">@Autowired</span>
+    <span class="function"><span class="keyword">public</span> <span class="title">DatabaseAccountService</span><span class="params">(RiskAssessor riskAssessor)</span> </span>{
+        <span class="keyword">this</span>.riskAssessor = riskAssessor;
+    }
+
+    <span class="comment">// ...</span>
+}
+</code></pre>
+<p><strong>注</strong>：注意如何使用构建器注入来允许<code>riskAssessor</code>字段被标记为<code>final</code>，这意味着<code>riskAssessor</code>后续是不能改变的。</p>
+<h3 id="u4F7F_u7528@SpringBootApplication_u6CE8_u89E3"><a href="#u4F7F_u7528@SpringBootApplication_u6CE8_u89E3" class="headerlink" title="使用@SpringBootApplication注解"></a>使用@SpringBootApplication注解</h3><p>很多Spring Boot开发者总是使用<code>@Configuration</code>，<code>@EnableAutoConfiguration</code>和<code>@ComponentScan</code>注解他们的main类。由于这些注解被如此频繁地一块使用（特别是你遵循以上<a href="http://docs.spring.io/spring-boot/docs/current-SNAPSHOT/reference/htmlsingle/#using-boot-structuring-your-code">最佳实践</a>时），Spring Boot提供一个方便的<code>@SpringBootApplication</code>选择。</p>
+<p>该<code>@SpringBootApplication</code>注解等价于以默认属性使用<code>@Configuration</code>，<code>@EnableAutoConfiguration</code>和<code>@ComponentScan</code>。</p>
+<pre><code class="java"><span class="keyword">package</span> com.example.myproject;
+
+<span class="keyword">import</span> org.springframework.boot.SpringApplication;
+<span class="keyword">import</span> org.springframework.boot.autoconfigure.SpringBootApplication;
+
+<span class="meta">@SpringBootApplication</span> <span class="comment">// same as @Configuration @EnableAutoConfiguration @ComponentScan</span>
+<span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Application</span> </span>{
+
+    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>{
+        SpringApplication.run(Application.class, args);
+    }
+
+}
+</code></pre>
+<h3 id="u8FD0_u884C_u5E94_u7528_u7A0B_u5E8F"><a href="#u8FD0_u884C_u5E94_u7528_u7A0B_u5E8F" class="headerlink" title="运行应用程序"></a>运行应用程序</h3><p>将应用打包成jar并使用一个内嵌HTTP服务器的一个最大好处是，你可以像其他方式那样运行你的应用程序。调试Spring Boot应用也很简单；你不需要任何特殊IDE或扩展。</p>
+<p><strong>注</strong>：本章节只覆盖基于jar的打包，如果选择将应用打包成war文件，你最好参考一下服务器和IDE文档。</p>
+<ul>
+<li>从IDE中运行</li>
+</ul>
+<p>你可以从IDE中运行Spring Boot应用，就像一个简单的Java应用，但是，你首先需要导入项目。导入步骤跟你的IDE和构建系统有关。大多数IDEs能够直接导入Maven项目，例如Eclipse用户可以选择<code>File</code>菜单的<code>Import…​</code> –&gt; <code>Existing Maven Projects</code>。</p>
+<p>如果不能直接将项目导入IDE，你可以需要使用构建系统生成IDE元数据。Maven有针对<a href="http://maven.apache.org/plugins/maven-eclipse-plugin/">Eclipse</a>和<a href="http://maven.apache.org/plugins/maven-idea-plugin/">IDEA</a>的插件；Gradle为<a href="http://www.gradle.org/docs/current/userguide/ide_support.html">各种IDEs</a>提供插件。</p>
+<p><strong>注</strong>：如果意外地运行一个web应用两次，你将看到一个”端口已在使用中”错误。为了确保任何存在的实例是关闭的，STS用户可以使用<code>Relaunch</code>按钮而不是<code>Run</code>按钮。</p>
+<ul>
+<li>作为一个打包后的应用运行</li>
+</ul>
+<p>如果使用Spring Boot Maven或Gradle插件创建一个可执行jar，你可以使用<code>java -jar</code>运行你的应用。例如：</p>
+<pre><code class="shell">$ java -jar target/myproject-0.0.1-SNAPSHOT.jar
+</code></pre>
+<p>运行一个打包的程序并开启远程调试支持是可能的，这允许你将调试器附加到打包的应用程序上：</p>
+<pre><code class="shell">$ java -Xdebug -Xrunjdwp:server=y,transport=dt_socket,address=8000,suspend=n \
+       -jar target/myproject-0.0.1-SNAPSHOT.jar
+</code></pre>
+<ul>
+<li>使用Maven插件运行</li>
+</ul>
+<p>Spring Boot Maven插件包含一个<code>run</code>目标，它可以用来快速编译和运行应用程序。应用程序以一种暴露的方式运行，由于即时”热”加载，你可以编辑资源。</p>
+<pre><code class="shell">$ mvn spring-boot:run
+</code></pre>
+<p>你可能想使用有用的操作系统环境变量：</p>
+<pre><code class="shell">$ export MAVEN_OPTS=-Xmx1024m -XX:MaxPermSize=128M -Djava.security.egd=file:/dev/./urandom
+</code></pre>
+<p>(“egd”设置是通过为Tomcat提供一个更快的会话keys熵源来加速Tomcat的。)</p>
+<ul>
+<li>使用Gradle插件运行</li>
+</ul>
+<p>Spring Boot Gradle插件也包含一个<code>run</code>目标，它可以用来以暴露的方式运行你的应用程序。不管你什么时候导入<code>spring-boot-plugin</code>，<code>bootRun</code>任务总是被添加进去。</p>
+<pre><code class="shell">$ gradle bootRun
+</code></pre>
+<p>你可能想使用那些有用的操作系统环境变量：</p>
+<pre><code class="shell">$ export JAVA_OPTS=-Xmx1024m -XX:MaxPermSize=128M -Djava.security.egd=file:/dev/./urandom
+</code></pre>
+<ul>
+<li>热交换</li>
+</ul>
+<p>由于Spring Boot应用程序只是普通的Java应用，那JVM热交换（hot-swapping）应该能出色的工作。JVM热交换在它能替换的字节码上有些限制，更全面的解决方案可以使用<a href="https://github.com/spring-projects/spring-loaded">Spring Loaded</a>项目或<a href="http://zeroturnaround.com/software/jrebel/">JRebel</a>。</p>
+<p>关于热交换可以参考<a href="http://docs.spring.io/spring-boot/docs/current-SNAPSHOT/reference/htmlsingle/#howto-hotswapping">“How-to”</a>章节。</p>
+<h3 id="u6253_u5305_u7528_u4E8E_u751F_u4EA7_u7684_u5E94_u7528_u7A0B_u5E8F"><a href="#u6253_u5305_u7528_u4E8E_u751F_u4EA7_u7684_u5E94_u7528_u7A0B_u5E8F" class="headerlink" title="打包用于生产的应用程序"></a>打包用于生产的应用程序</h3><p>可执行jars可用于生产部署。由于它们是自包含的，非常适合基于云的部署。关于其他“生产准备”的特性，比如健康监控，审计和指标REST，或JMX端点，可以考虑添加<code>spring-boot-actuator</code>。具体参考<a href="http://docs.spring.io/spring-boot/docs/current-SNAPSHOT/reference/htmlsingle/#production-ready">Part V, “Spring Boot Actuator: Production-ready features”</a>。</p>

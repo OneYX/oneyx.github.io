@@ -1,0 +1,158 @@
+<h3 id="u90E8_u7F72_u5230_u4E91_u7AEF"><a href="#u90E8_u7F72_u5230_u4E91_u7AEF" class="headerlink" title="部署到云端"></a>部署到云端</h3><p>对于大多数流行云PaaS（平台即服务）提供商，Spring Boot的可执行jars就是为它们准备的。这些提供商往往要求你带上自己的容器；它们管理应用的进程（不特别针对Java应用程序），所以它们需要一些中间层来将你的应用适配到云概念中的一个运行进程。</p>
+<p>两个流行的云提供商，Heroku和Cloud Foundry，采取一个打包（’buildpack’）方法。为了启动你的应用程序，不管需要什么，buildpack都会将它们打包到你的部署代码：它可能是一个JDK和一个java调用，也可能是一个内嵌的webserver，或者是一个成熟的应用服务器。buildpack是可插拔的，但你最好尽可能少的对它进行自定义设置。这可以减少不受你控制的功能范围，最小化部署和生产环境的发散。</p>
+<p>理想情况下，你的应用就像一个Spring Boot可执行jar，所有运行需要的东西都打包到它内部。</p>
+<ul>
+<li>Cloud Foundry</li>
+</ul>
+<p>如果不指定其他打包方式，Cloud Foundry会启用它提供的默认打包方式。Cloud Foundry的<a href="https://github.com/cloudfoundry/java-buildpack">Java buildpack</a>对Spring应用有出色的支持，包括Spring Boot。你可以部署独立的可执行jar应用，也可以部署传统的.war形式的应用。</p>
+<p>一旦你构建了应用（比如，使用<code>mvn clean package</code>）并<a href="http://docs.cloudfoundry.org/devguide/installcf/install-go-cli.html">安装</a>了cf<a href="http://docs.cloudfoundry.org/devguide/installcf/install-go-cli.html">命令行工具</a>，你可以使用下面的<code>cf push</code>命令（将路径指向你编译后的.jar）来部署应用。在发布一个应用前，确保你已登陆cf命令行客户端。</p>
+<pre><code class="shell">$ cf push acloudyspringtime -p target/demo-0.0.1-SNAPSHOT.jar
+</code></pre>
+<p>查看<code>cf push</code><a href="http://docs.cloudfoundry.org/devguide/installcf/whats-new-v6.html#push">文档</a>获取更多可选项。如果相同目录下存在<a href="http://docs.cloudfoundry.org/devguide/deploy-apps/manifest.html">manifest.yml</a>，Cloud Foundry会使用它。</p>
+<p>就此，cf开始上传你的应用：</p>
+<pre><code class="java">Uploading acloudyspringtime... OK
+Preparing to start acloudyspringtime... OK
+-----&gt; <span class="function">Downloaded app <span class="title">package</span> <span class="params">(<span class="number">8.9</span>M)</span>
+-----&gt; Java Buildpack source: system
+-----&gt; Downloading Open JDK 1.7.0_51 from .../x86_64/openjdk-1.7.0_51.tar.<span class="title">gz</span> <span class="params">(<span class="number">1.8</span>s)</span>
+       Expanding Open JDK to .java-buildpack/<span class="title">open_jdk</span> <span class="params">(<span class="number">1.2</span>s)</span>
+-----&gt; Downloading Spring Auto Reconfiguration from  0.8.7 .../auto-reconfiguration-0.8.7.<span class="title">jar</span> <span class="params">(<span class="number">0.1</span>s)</span>
+-----&gt; Uploading <span class="title">droplet</span> <span class="params">(<span class="number">44</span>M)</span>
+Checking status of app 'acloudyspringtime'...
+  0 of 1 instances <span class="title">running</span> <span class="params">(<span class="number">1</span> starting)</span>
+  ...
+  0 of 1 instances <span class="title">running</span> <span class="params">(<span class="number">1</span> down)</span>
+  ...
+  0 of 1 instances <span class="title">running</span> <span class="params">(<span class="number">1</span> starting)</span>
+  ...
+  1 of 1 instances <span class="title">running</span> <span class="params">(<span class="number">1</span> running)</span>
+
+App started</span>
+</code></pre>
+<p>恭喜！应用现在处于运行状态！</p>
+<p>检验部署应用的状态是很简单的：</p>
+<pre><code class="shell">$ cf apps
+Getting applications in ...
+OK
+
+name                 requested state   instances   memory   disk   urls
+...
+acloudyspringtime    started           1/1         512M     1G     acloudyspringtime.cfapps.io
+...
+</code></pre>
+<p>一旦Cloud Foundry意识到你的应用已经部署，你就可以点击给定的应用URI，此处是<a href="http://acloudyspringtime.cfapps.io/">acloudyspringtime.cfapps.io/</a>。</p>
+<ul>
+<li>绑定服务</li>
+</ul>
+<p>默认情况下，运行应用的元数据和服务连接信息被暴露为应用的环境变量（比如，$VCAP_SERVICES）。采用这种架构的原因是因为Cloud Foundry多语言特性（任何语言和平台都支持作为buildpack）。进程级别的环境变量是语言无关（language agnostic）的。</p>
+<p>环境变量并不总是有利于设计最简单的API，所以Spring Boot自动提取它们，然后将这些数据导入能够通过Spring <code>Environment</code>抽象访问的属性里：</p>
+<pre><code class="java"><span class="meta">@Component</span>
+<span class="class"><span class="keyword">class</span> <span class="title">MyBean</span> <span class="keyword">implements</span> <span class="title">EnvironmentAware</span> </span>{
+
+    <span class="keyword">private</span> String instanceId;
+
+    <span class="meta">@Override</span>
+    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setEnvironment</span><span class="params">(Environment environment)</span> </span>{
+        <span class="keyword">this</span>.instanceId = environment.getProperty(<span class="string">"vcap.application.instance_id"</span>);
+    }
+
+    <span class="comment">// ...</span>
+
+}
+</code></pre>
+<p>所有的Cloud Foundry属性都以vcap作为前缀。你可以使用vcap属性获取应用信息（比如应用的公共URL）和服务信息（比如数据库证书）。具体参考VcapApplicationListener Javadoc。</p>
+<p><strong>注</strong>：<a href="http://cloud.spring.io/spring-cloud-connectors/">Spring Cloud Connectors</a>项目很适合比如配置数据源的任务。Spring Boot提供自动配置支持和一个<code>spring-boot-starter-cloud-connectors</code> starter POM。</p>
+<ul>
+<li>Heroku</li>
+</ul>
+<p>Heroku是另外一个流行的Paas平台。想要自定义Heroku的构建过程，你可以提供一个<code>Procfile</code>，它提供部署一个应用所需的指令。Heroku为Java应用分配一个端口，确保能够路由到外部URI。</p>
+<p>你必须配置你的应用监听正确的端口。下面是用于我们的starter REST应用的Procfile：</p>
+<pre><code class="shell">web: java -Dserver.port=$PORT -jar target/demo-0.0.1-SNAPSHOT.jar
+</code></pre>
+<p>Spring Boot将<code>-D</code>参数作为属性，通过一个Spring的Environment实例访问。<code>server.port</code>配置属性适合于内嵌的Tomcat，Jetty或Undertow实例启用时使用。<code>$PORT</code>环境变量被分配给Heroku Paas使用。</p>
+<p>Heroku默认使用Java 1.6。只要你的Maven或Gradle构建时使用相同的版本就没问题（Maven用户可以设置<code>java.version</code>属性）。如果你想使用JDK 1.7，在你的pom.xml和Procfile临近处创建一个system.properties文件。在该文件中添加以下设置：</p>
+<pre><code class="java">java.runtime.version=<span class="number">1.7</span>
+</code></pre>
+<p>这就是你需要做的一切。对于Heroku部署来说，经常做的工作就是使用<code>git push</code>将代码推送到生产环境。</p>
+<pre><code class="shell">$ git push heroku master
+
+Initializing repository, done.
+Counting objects: 95, done.
+Delta compression using up to 8 threads.
+Compressing objects: 100% (78/78), done.
+Writing objects: 100% (95/95), 8.66 MiB | 606.00 KiB/s, done.
+Total 95 (delta 31), reused 0 (delta 0)
+
+-----&gt; Java app detected
+-----&gt; Installing OpenJDK 1.7... done
+-----&gt; Installing Maven 3.2.3... done
+-----&gt; Installing settings.xml... done
+-----&gt; executing /app/tmp/cache/.maven/bin/mvn -B
+       -Duser.home=/tmp/build_0c35a5d2-a067-4abc-a232-14b1fb7a8229
+       -Dmaven.repo.local=/app/tmp/cache/.m2/repository
+       -s /app/tmp/cache/.m2/settings.xml -DskipTests=true clean install
+
+       [INFO] Scanning for projects...
+       Downloading: http://repo.spring.io/...
+       Downloaded: http://repo.spring.io/... (818 B at 1.8 KB/sec)
+        ....
+       Downloaded: http://s3pository.heroku.com/jvm/... (152 KB at 595.3 KB/sec)
+       [INFO] Installing /tmp/build_0c35a5d2-a067-4abc-a232-14b1fb7a8229/target/...
+       [INFO] Installing /tmp/build_0c35a5d2-a067-4abc-a232-14b1fb7a8229/pom.xml ...
+       [INFO] ------------------------------------------------------------------------
+       [INFO] BUILD SUCCESS
+       [INFO] ------------------------------------------------------------------------
+       [INFO] Total time: 59.358s
+       [INFO] Finished at: Fri Mar 07 07:28:25 UTC 2014
+       [INFO] Final Memory: 20M/493M
+       [INFO] ------------------------------------------------------------------------
+
+-----&gt; Discovering process types
+       Procfile declares types -&gt; web
+
+-----&gt; Compressing... done, 70.4MB
+-----&gt; Launching... done, v6
+       http://agile-sierra-1405.herokuapp.com/ deployed to Heroku
+
+To git@heroku.com:agile-sierra-1405.git
+ * [new branch]      master -&gt; master
+</code></pre>
+<p>现在你的应用已经启动并运行在Heroku。</p>
+<ul>
+<li>Openshift</li>
+</ul>
+<p><a href="https://www.openshift.com/">Openshift</a>是RedHat公共（和企业）PaaS解决方案。和Heroku相似，它也是通过运行被git提交触发的脚本来工作的，所以你可以使用任何你喜欢的方式编写Spring Boot应用启动脚本，只要Java运行时环境可用（这是在Openshift上可以要求的一个标准特性）。为了实现这样的效果，你可以使用<a href="https://www.openshift.com/developers/do-it-yourself">DIY Cartridge</a>，并在<code>.openshift/action_scripts</code>下hooks你的仓库：</p>
+<p>基本模式如下：</p>
+<ol>
+<li>确保Java和构建工具已被远程安装，比如使用一个<code>pre_build</code> hook（默认会安装Java和Maven，不会安装Gradle）。</li>
+<li>使用一个<code>build</code> hook去构建你的jar（使用Maven或Gradle），比如<pre><code class="shell">#!/bin/bash
+cd $OPENSHIFT_REPO_DIR
+mvn package -s .openshift/settings.xml -DskipTests=true
+</code></pre>
+</li>
+<li>添加一个调用<code>java -jar …​</code>的<code>start</code> hook<pre><code class="shell">#!/bin/bash
+cd $OPENSHIFT_REPO_DIR
+nohup java -jar target/*.jar --server.port=${OPENSHIFT_DIY_PORT} --server.address=${OPENSHIFT_DIY_IP} &amp;
+</code></pre>
+</li>
+<li>使用一个<code>stop</code> hook<pre><code class="shell">#!/bin/bash
+source $OPENSHIFT_CARTRIDGE_SDK_BASH
+PID=$(ps -ef | grep java.*\.jar | grep -v grep | awk &apos;{ print $2 }&apos;)
+if [ -z &quot;$PID&quot; ]
+then
+ client_result &quot;Application is already stopped&quot;
+else
+ kill $PID
+fi
+</code></pre>
+</li>
+<li>将内嵌的服务绑定到平台提供的在application.properties定义的环境变量，比如<pre><code class="shell">spring.datasource.url: jdbc:mysql://${OPENSHIFT_MYSQL_DB_HOST}:${OPENSHIFT_MYSQL_DB_PORT}/${OPENSHIFT_APP_NAME}
+spring.datasource.username: ${OPENSHIFT_MYSQL_DB_USERNAME}
+spring.datasource.password: ${OPENSHIFT_MYSQL_DB_PASSWORD}
+</code></pre>
+在Openshift的网站上有一篇<a href="https://www.openshift.com/blogs/run-gradle-builds-on-openshift">running Gradle in Openshift</a>博客，如果想使用gradle构建运行的应用可以参考它。由于一个<a href="http://issues.gradle.org/browse/GRADLE-2871">Gradle bug</a>，你不能使用高于1.6版本的Gradle。</li>
+</ol>
+<ul>
+<li>Google App Engine</li>
+</ul>
+<p>Google App Engine跟Servlet 2.5 API是有联系的，所以在不修改的情况系你是不能部署一个Spring应用的。具体查看本指南的<a href="http://docs.spring.io/spring-boot/docs/current-SNAPSHOT/reference/htmlsingle/#howto-servlet-2-5">Servlet 2.5章节</a>。</p>

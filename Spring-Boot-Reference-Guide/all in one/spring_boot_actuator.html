@@ -1,0 +1,592 @@
+<p>###Spring Boot执行器：Production-ready特性</p>
+<p>Spring Boot包含很多其他的特性，它们可以帮你监控和管理发布到生产环境的应用。你可以选择使用HTTP端点，JMX或远程shell（SSH或Telnet）来管理和监控应用。审计（Auditing），健康（health）和数据采集（metrics gathering）会自动应用到你的应用。</p>
+<ul>
+<li>开启production-ready特性</li>
+</ul>
+<p><a href="http://github.com/spring-projects/spring-boot/tree/master/spring-boot-actuator">spring-boot-actuator</a>模块提供了Spring Boot所有的production-ready特性。启用该特性的最简单方式就是添加对spring-boot-starter-actuator ‘Starter POM’的依赖。</p>
+<p><strong>执行器（Actuator）的定义</strong>：执行器是一个制造业术语，指的是用于移动或控制东西的一个机械装置。一个很小的改变就能让执行器产生大量的运动。</p>
+<p>基于Maven的项目想要添加执行器只需添加下面的’starter’依赖：</p>
+<pre><code class="xml"><span class="tag">&lt;<span class="name">dependencies</span>&gt;</span>
+    <span class="tag">&lt;<span class="name">dependency</span>&gt;</span>
+        <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.springframework.boot<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span>
+        <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spring-boot-starter-actuator<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span>
+    <span class="tag">&lt;/<span class="name">dependency</span>&gt;</span>
+<span class="tag">&lt;/<span class="name">dependencies</span>&gt;</span>
+</code></pre>
+<p>对于Gradle，使用下面的声明：</p>
+<pre><code class="java">dependencies {
+    compile(<span class="string">"org.springframework.boot:spring-boot-starter-actuator"</span>)
+}
+</code></pre>
+<ul>
+<li>端点</li>
+</ul>
+<p>执行器端点允许你监控应用及与应用进行交互。Spring Boot包含很多内置的端点，你也可以添加自己的。例如，health端点提供了应用的基本健康信息。</p>
+<p>端点暴露的方式取决于你采用的技术类型。大部分应用选择HTTP监控，端点的ID映射到一个URL。例如，默认情况下，health端点将被映射到/health。</p>
+<p>下面的端点都是可用的：</p>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th style="text-align:left">描述　</th>
+<th style="text-align:left">敏感（Sensitive）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>autoconfig</td>
+<td style="text-align:left">显示一个auto-configuration的报告，该报告展示所有auto-configuration候选者及它们被应用或未被应用的原因</td>
+<td style="text-align:left">true</td>
+</tr>
+<tr>
+<td>beans</td>
+<td style="text-align:left">显示一个应用中所有Spring Beans的完整列表</td>
+<td style="text-align:left">true</td>
+</tr>
+<tr>
+<td>configprops</td>
+<td style="text-align:left">显示一个所有@ConfigurationProperties的整理列表</td>
+<td style="text-align:left">true</td>
+</tr>
+<tr>
+<td>dump</td>
+<td style="text-align:left">执行一个线程转储</td>
+<td style="text-align:left">true</td>
+</tr>
+<tr>
+<td>env</td>
+<td style="text-align:left">暴露来自Spring　ConfigurableEnvironment的属性</td>
+<td style="text-align:left">true</td>
+</tr>
+<tr>
+<td>health</td>
+<td style="text-align:left">展示应用的健康信息（当使用一个未认证连接访问时显示一个简单的’status’，使用认证连接访问则显示全部信息详情）</td>
+<td style="text-align:left">false</td>
+</tr>
+<tr>
+<td>info</td>
+<td style="text-align:left">显示任意的应用信息</td>
+<td style="text-align:left">false</td>
+</tr>
+<tr>
+<td>metrics</td>
+<td style="text-align:left">展示当前应用的’指标’信息</td>
+<td style="text-align:left">true</td>
+</tr>
+<tr>
+<td>mappings</td>
+<td style="text-align:left">显示一个所有@RequestMapping路径的整理列表</td>
+<td style="text-align:left">true</td>
+</tr>
+<tr>
+<td>shutdown</td>
+<td style="text-align:left">允许应用以优雅的方式关闭（默认情况下不启用）</td>
+<td style="text-align:left">true</td>
+</tr>
+<tr>
+<td>trace</td>
+<td style="text-align:left">显示trace信息（默认为最新的一些HTTP请求）</td>
+<td style="text-align:left">true</td>
+</tr>
+</tbody>
+</table>
+<p><strong>注</strong>：根据一个端点暴露的方式，sensitive参数可能会被用做一个安全提示。例如，在使用HTTP访问sensitive端点时需要提供用户名/密码（如果没有启用web安全，可能会简化为禁止访问该端点）。</p>
+<ol>
+<li>自定义端点</li>
+</ol>
+<p>使用Spring属性可以自定义端点。你可以设置端点是否开启（enabled），是否敏感（sensitive），甚至它的id。例如，下面的application.properties改变了敏感性和beans端点的id，也启用了shutdown。</p>
+<pre><code class="java">endpoints.beans.id=springbeans
+endpoints.beans.sensitive=<span class="keyword">false</span>
+endpoints.shutdown.enabled=<span class="keyword">true</span>
+</code></pre>
+<p><strong>注</strong>：前缀’endpoints + . + name’被用来唯一的标识被配置的端点。</p>
+<p>默认情况下，除了shutdown外的所有端点都是启用的。如果希望指定选择端点的启用，你可以使用endpoints.enabled属性。例如，下面的配置禁用了除info外的所有端点：</p>
+<pre><code class="java">endpoints.enabled=<span class="keyword">false</span>
+endpoints.info.enabled=<span class="keyword">true</span>
+</code></pre>
+<ol>
+<li>健康信息</li>
+</ol>
+<p>健康信息可以用来检查应用的运行状态。它经常被监控软件用来提醒人们生产系统是否停止。health端点暴露的默认信息取决于端点是如何被访问的。对于一个非安全，未认证的连接只返回一个简单的’status’信息。对于一个安全或认证过的连接其他详细信息也会展示（具体参考<a href="">Section 41.6, “HTTP Health endpoint access restrictions” </a>）。</p>
+<p>健康信息是从你的ApplicationContext中定义的所有<a href="http://github.com/spring-projects/spring-boot/tree/master/spring-boot-actuator/src/main/java/org/springframework/boot/actuate/health/HealthIndicator.java">HealthIndicator</a> beans收集过来的。Spring Boot包含很多auto-configured的HealthIndicators，你也可以写自己的。</p>
+<ol>
+<li>安全与HealthIndicators</li>
+</ol>
+<p>HealthIndicators返回的信息常常性质上有点敏感。例如，你可能不想将数据库服务器的详情发布到外面。因此，在使用一个未认证的HTTP连接时，默认只会暴露健康状态（health status）。如果想将所有的健康信息暴露出去，你可以把endpoints.health.sensitive设置为false。</p>
+<p>为防止’拒绝服务’攻击，Health响应会被缓存。你可以使用<code>endpoints.health.time-to-live</code>属性改变默认的缓存时间（1000毫秒）。</p>
+<ul>
+<li>自动配置的HealthIndicators</li>
+</ul>
+<p>下面的HealthIndicators会被Spring Boot自动配置（在合适的时候）：</p>
+<table>
+<thead>
+<tr>
+<th>名称</th>
+<th style="text-align:left">描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="http://github.com/spring-projects/spring-boot/tree/master/spring-boot-actuator/src/main/java/org/springframework/boot/actuate/health/DiskSpaceHealthIndicator.java">DiskSpaceHealthIndicator</a></td>
+<td style="text-align:left">低磁盘空间检测</td>
+</tr>
+<tr>
+<td><a href="http://github.com/spring-projects/spring-boot/tree/master/spring-boot-actuator/src/main/java/org/springframework/boot/actuate/health/DataSourceHealthIndicator.java">DataSourceHealthIndicator</a></td>
+<td style="text-align:left">检查是否能从DataSource获取连接</td>
+</tr>
+<tr>
+<td><a href="http://github.com/spring-projects/spring-boot/tree/master/spring-boot-actuator/src/main/java/org/springframework/boot/actuate/health/MongoHealthIndicator.java">MongoHealthIndicator</a></td>
+<td style="text-align:left">检查一个Mongo数据库是否可用（up）</td>
+</tr>
+<tr>
+<td><a href="http://github.com/spring-projects/spring-boot/tree/master/spring-boot-actuator/src/main/java/org/springframework/boot/actuate/health/RabbitHealthIndicator.java">RabbitHealthIndicator</a></td>
+<td style="text-align:left">检查一个Rabbit服务器是否可用（up）</td>
+</tr>
+<tr>
+<td><a href="http://github.com/spring-projects/spring-boot/tree/master/spring-boot-actuator/src/main/java/org/springframework/boot/actuate/health/RedisHealthIndicator.java">RedisHealthIndicator</a></td>
+<td style="text-align:left">检查一个Redis服务器是否可用（up）</td>
+</tr>
+<tr>
+<td><a href="http://github.com/spring-projects/spring-boot/tree/master/spring-boot-actuator/src/main/java/org/springframework/boot/actuate/health/SolrHealthIndicator.java">SolrHealthIndicator</a></td>
+<td style="text-align:left">检查一个Solr服务器是否可用（up）</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>编写自定义HealthIndicators</li>
+</ul>
+<p>想提供自定义健康信息，你可以注册实现了<a href="http://github.com/spring-projects/spring-boot/tree/master/spring-boot-actuator/src/main/java/org/springframework/boot/actuate/health/HealthIndicator.java">HealthIndicator</a>接口的Spring beans。你需要提供一个health()方法的实现，并返回一个Health响应。Health响应需要包含一个status和可选的用于展示的详情。</p>
+<pre><code class="java"><span class="keyword">import</span> org.springframework.boot.actuate.health.HealthIndicator;
+<span class="keyword">import</span> org.springframework.stereotype.Component;
+
+<span class="meta">@Component</span>
+<span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">MyHealth</span> <span class="keyword">implements</span> <span class="title">HealthIndicator</span> </span>{
+
+    <span class="meta">@Override</span>
+    <span class="function"><span class="keyword">public</span> Health <span class="title">health</span><span class="params">()</span> </span>{
+        <span class="keyword">int</span> errorCode = check(); <span class="comment">// perform some specific health check</span>
+        <span class="keyword">if</span> (errorCode != <span class="number">0</span>) {
+            <span class="keyword">return</span> Health.down().withDetail(<span class="string">"Error Code"</span>, errorCode).build();
+        }
+        <span class="keyword">return</span> Health.up().build();
+    }
+
+}
+</code></pre>
+<p>除了Spring Boot预定义的<a href="http://github.com/spring-projects/spring-boot/tree/master/spring-boot-actuator/src/main/java/org/springframework/boot/actuate/health/Status.java">Status</a>类型，Health也可以返回一个代表新的系统状态的自定义Status。在这种情况下，需要提供一个<a href="http://github.com/spring-projects/spring-boot/tree/master/spring-boot-actuator/src/main/java/org/springframework/boot/actuate/health/HealthAggregator.java">HealthAggregator</a>接口的自定义实现，或使用management.health.status.order属性配置默认的实现。</p>
+<p>例如，假设一个新的，代码为FATAL的Status被用于你的一个HealthIndicator实现中。为了配置严重程度，你需要将下面的配置添加到application属性文件中：</p>
+<pre><code class="java">management.health.status.order: DOWN, OUT_OF_SERVICE, UNKNOWN, UP
+</code></pre>
+<p>如果使用HTTP访问health端点，你可能想要注册自定义的status，并使用HealthMvcEndpoint进行映射。例如，你可以将FATAL映射为HttpStatus.SERVICE_UNAVAILABLE。</p>
+<ol>
+<li>自定义应用info信息</li>
+</ol>
+<p>通过设置Spring属性info.*，你可以定义info端点暴露的数据。所有在info关键字下的Environment属性都将被自动暴露。例如，你可以将下面的配置添加到application.properties：</p>
+<pre><code class="java">info.app.name=MyService
+info.app.description=My awesome service
+info.app.version=<span class="number">1.0</span>.0
+</code></pre>
+<ul>
+<li>在构建时期自动扩展info属性</li>
+</ul>
+<p>你可以使用已经存在的构建配置自动扩展info属性，而不是对在项目构建配置中存在的属性进行硬编码。这在Maven和Gradle都是可能的。</p>
+<p><strong>使用Maven自动扩展属性</strong></p>
+<p>对于Maven项目，你可以使用资源过滤来自动扩展info属性。如果使用spring-boot-starter-parent，你可以通过<code>@..@</code>占位符引用Maven的’project properties’。</p>
+<pre><code class="java">project.artifactId=myproject
+project.name=Demo
+project.version=X.X.X.X
+project.description=Demo project <span class="keyword">for</span> info endpoint
+info.build.artifact=<span class="meta">@project</span>.artifactId@
+info.build.name=<span class="meta">@project</span>.name@
+info.build.description=<span class="meta">@project</span>.description@
+info.build.version=<span class="meta">@project</span>.version@
+</code></pre>
+<p><strong>注</strong>：在上面的示例中，我们使用project.*来设置一些值以防止由于某些原因Maven的资源过滤没有开启。Maven目标<code>spring-boot:run</code>直接将<code>src/main/resources</code>添加到classpath下（出于热加载的目的）。这就绕过了资源过滤和自动扩展属性的特性。你可以使用<code>exec:java</code>替换该目标或自定义插件的配置，具体参考<a href="http://docs.spring.io/spring-boot/docs/1.3.0.BUILD-SNAPSHOT/maven-plugin/usage.html">plugin usage page</a>。</p>
+<p>如果你不使用starter parent，在你的pom.xml你需要添加（处于<build/>元素内）：</p>
+<pre><code class="xml"><span class="tag">&lt;<span class="name">resources</span>&gt;</span>
+    <span class="tag">&lt;<span class="name">resource</span>&gt;</span>
+        <span class="tag">&lt;<span class="name">directory</span>&gt;</span>src/main/resources<span class="tag">&lt;/<span class="name">directory</span>&gt;</span>
+        <span class="tag">&lt;<span class="name">filtering</span>&gt;</span>true<span class="tag">&lt;/<span class="name">filtering</span>&gt;</span>
+    <span class="tag">&lt;/<span class="name">resource</span>&gt;</span>
+<span class="tag">&lt;/<span class="name">resources</span>&gt;</span>
+</code></pre>
+<p>和（处于<plugins/>内）：</p>
+<pre><code class="xml"><span class="tag">&lt;<span class="name">plugin</span>&gt;</span>
+    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.apache.maven.plugins<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span>
+    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>maven-resources-plugin<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span>
+    <span class="tag">&lt;<span class="name">version</span>&gt;</span>2.6<span class="tag">&lt;/<span class="name">version</span>&gt;</span>
+    <span class="tag">&lt;<span class="name">configuration</span>&gt;</span>
+        <span class="tag">&lt;<span class="name">delimiters</span>&gt;</span>
+            <span class="tag">&lt;<span class="name">delimiter</span>&gt;</span>@<span class="tag">&lt;/<span class="name">delimiter</span>&gt;</span>
+        <span class="tag">&lt;/<span class="name">delimiters</span>&gt;</span>
+    <span class="tag">&lt;/<span class="name">configuration</span>&gt;</span>
+<span class="tag">&lt;/<span class="name">plugin</span>&gt;</span>
+</code></pre>
+<p><strong>使用Gradle自动扩展属性</strong></p>
+<p>通过配置Java插件的processResources任务，你也可以自动使用来自Gradle项目的属性扩展info属性。</p>
+<pre><code class="java">processResources {
+    expand(project.properties)
+}
+</code></pre>
+<p>然后你可以通过占位符引用Gradle项目的属性：</p>
+<pre><code class="java">info.build.name=${name}
+info.build.description=${description}
+info.build.version=${version}
+</code></pre>
+<ul>
+<li>Git提交信息</li>
+</ul>
+<p>info端点的另一个有用特性是，当项目构建完成后，它可以发布关于你的git源码仓库状态的信息。如果在你的jar中包含一个git.properties文件，git.branch和git.commit属性将被加载。</p>
+<p>对于Maven用户，<code>spring-boot-starter-parent</code> POM包含一个能够产生git.properties文件的预配置插件。只需要简单的将下面的声明添加到你的POM中：</p>
+<pre><code class="xml"><span class="tag">&lt;<span class="name">build</span>&gt;</span>
+    <span class="tag">&lt;<span class="name">plugins</span>&gt;</span>
+        <span class="tag">&lt;<span class="name">plugin</span>&gt;</span>
+            <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>pl.project13.maven<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span>
+            <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>git-commit-id-plugin<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span>
+        <span class="tag">&lt;/<span class="name">plugin</span>&gt;</span>
+    <span class="tag">&lt;/<span class="name">plugins</span>&gt;</span>
+<span class="tag">&lt;/<span class="name">build</span>&gt;</span>
+</code></pre>
+<p>对于Gradle用户可以使用一个相似的插件<a href="https://github.com/ajoberstar/gradle-git">gradle-git</a>，尽管为了产生属性文件可能需要稍微多点工作。</p>
+<h3 id="u57FA_u4E8EHTTP_u7684_u76D1_u63A7_u548C_u7BA1_u7406"><a href="#u57FA_u4E8EHTTP_u7684_u76D1_u63A7_u548C_u7BA1_u7406" class="headerlink" title="基于HTTP的监控和管理"></a>基于HTTP的监控和管理</h3><p>如果你正在开发一个Spring MVC应用，Spring Boot执行器自动将所有启用的端点通过HTTP暴露出去。默认约定使用端点的id作为URL路径，例如，health暴露为/health。</p>
+<ul>
+<li>保护敏感端点</li>
+</ul>
+<p>如果你的项目中添加的有Spring Security，所有通过HTTP暴露的敏感端点都会受到保护。默认情况下会使用基本认证（basic authentication，用户名为user，密码为应用启动时在控制台打印的密码）。</p>
+<p>你可以使用Spring属性改变用户名，密码和访问端点需要的安全角色。例如，你可能会在application.properties中添加下列配置：</p>
+<pre><code class="java">security.user.name=admin
+security.user.password=secret
+management.security.role=SUPERUSER
+</code></pre>
+<p><strong>注</strong>：如果你不使用Spring Security，那你的HTTP端点就被公开暴露，你应该慎重考虑启用哪些端点。具体参考<a href="http://docs.spring.io/spring-boot/docs/current-SNAPSHOT/reference/htmlsingle/#production-ready-customizing-endpoints">Section 40.1, “Customizing endpoints”</a>。</p>
+<ul>
+<li>自定义管理服务器的上下文路径</li>
+</ul>
+<p>有时候将所有的管理端口划分到一个路径下是有用的。例如，你的应用可能已经将<code>/info</code>作为他用。你可以用<code>management.contextPath</code>属性为管理端口设置一个前缀：</p>
+<pre><code class="java">management.context-path=/manage
+</code></pre>
+<p>上面的application.properties示例将把端口从<code>/{id}</code>改为<code>/manage/{id}</code>（比如，/manage/info）。</p>
+<ul>
+<li>自定义管理服务器的端口</li>
+</ul>
+<p>对于基于云的部署，使用默认的HTTP端口暴露管理端点（endpoints）是明智的选择。然而，如果你的应用是在自己的数据中心运行，那你可能倾向于使用一个不同的HTTP端口来暴露端点。</p>
+<p><code>management.port</code>属性可以用来改变HTTP端口：</p>
+<pre><code class="java">management.port=<span class="number">8081</span>
+</code></pre>
+<p>由于你的管理端口经常被防火墙保护，不对外暴露也就不需要保护管理端点，即使你的主要应用是安全的。在这种情况下，classpath下会存在Spring Security库，你可以设置下面的属性来禁用安全管理策略（management security）：</p>
+<pre><code class="java">management.security.enabled=<span class="keyword">false</span>
+</code></pre>
+<p>（如果classpath下不存在Spring Security，那也就不需要显示的以这种方式来禁用安全管理策略，它甚至可能会破坏应用程序。）</p>
+<ul>
+<li>自定义管理服务器的地址</li>
+</ul>
+<p>你可以通过设置<code>management.address</code>属性来定义管理端点可以使用的地址。这在你只想监听内部或面向生产环境的网络，或只监听来自localhost的连接时非常有用。</p>
+<p>下面的application.properties示例不允许远程管理连接：</p>
+<pre><code class="java">management.port=<span class="number">8081</span>
+management.address=<span class="number">127.0</span>.0.1
+</code></pre>
+<ul>
+<li>禁用HTTP端点</li>
+</ul>
+<p>如果不想使用HTTP暴露端点，你可以将管理端口设置为-1：<br><code>management.port=-1</code></p>
+<ul>
+<li>HTTP Health端点访问限制</li>
+</ul>
+<p>通过health端点暴露的信息根据是否为匿名访问而不同。默认情况下，当匿名访问时，任何有关服务器的健康详情都被隐藏了，该端点只简单的指示服务器是运行（up）还是停止（down）。此外，当匿名访问时，响应会被缓存一个可配置的时间段以防止端点被用于’拒绝服务’攻击。<code>endpoints.health.time-to-live</code>属性被用来配置缓存时间（单位为毫秒），默认为1000毫秒，也就是1秒。</p>
+<p>上述的限制可以被禁止，从而允许匿名用户完全访问health端点。想达到这个效果，可以将<code>endpoints.health.sensitive</code>设为<code>false</code>。</p>
+<h3 id="u57FA_u4E8EJMX_u7684_u76D1_u63A7_u548C_u7BA1_u7406"><a href="#u57FA_u4E8EJMX_u7684_u76D1_u63A7_u548C_u7BA1_u7406" class="headerlink" title="基于JMX的监控和管理"></a>基于JMX的监控和管理</h3><p>Java管理扩展（JMX）提供了一种标准的监控和管理应用的机制。默认情况下，Spring Boot在<code>org.springframework.boot</code>域下将管理端点暴露为JMX MBeans。</p>
+<ul>
+<li>自定义MBean名称</li>
+</ul>
+<p>MBean的名称通常产生于端点的id。例如，health端点被暴露为<code>org.springframework.boot/Endpoint/HealthEndpoint</code>。</p>
+<p>如果你的应用包含多个Spring ApplicationContext，你会发现存在名称冲突。为了解决这个问题，你可以将<code>endpoints.jmx.uniqueNames</code>设置为true，这样MBean的名称总是唯一的。</p>
+<p>你也可以自定义JMX域，所有的端点都在该域下暴露。这里有个application.properties示例：</p>
+<pre><code class="java">endpoints.jmx.domain=myapp
+endpoints.jmx.uniqueNames=<span class="keyword">true</span>
+</code></pre>
+<ul>
+<li>禁用JMX端点</li>
+</ul>
+<p>如果不想通过JMX暴露端点，你可以将<code>spring.jmx.enabled</code>属性设置为false：</p>
+<pre><code class="java">spring.jmx.enabled=<span class="keyword">false</span>
+</code></pre>
+<ul>
+<li>使用Jolokia通过HTTP实现JMX远程管理</li>
+</ul>
+<p>Jolokia是一个JMX-HTTP桥，它提供了一种访问JMX beans的替代方法。想要使用Jolokia，只需添加<code>org.jolokia:jolokia-core</code>的依赖。例如，使用Maven需要添加下面的配置：</p>
+<pre><code class="xml"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span>
+    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.jolokia<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span>
+    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>jolokia-core<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span>
+ <span class="tag">&lt;/<span class="name">dependency</span>&gt;</span>
+</code></pre>
+<p>在你的管理HTTP服务器上可以通过<code>/jolokia</code>访问Jolokia。</p>
+<ul>
+<li>自定义Jolokia</li>
+</ul>
+<p>Jolokia有很多配置，传统上一般使用servlet参数进行设置。使用Spring Boot，你可以在application.properties中通过把参数加上<code>jolokia.config.</code>前缀来设置：</p>
+<pre><code class="java">jolokia.config.debug=<span class="keyword">true</span>
+</code></pre>
+<ul>
+<li>禁用Jolokia</li>
+</ul>
+<p>如果你正在使用Jolokia，但不想让Spring Boot配置它，只需要简单的将<code>endpoints.jolokia.enabled</code>属性设置为false：</p>
+<pre><code class="java">endpoints.jolokia.enabled=<span class="keyword">false</span>
+</code></pre>
+<h3 id="u4F7F_u7528_u8FDC_u7A0Bshell_u6765_u8FDB_u884C_u76D1_u63A7_u548C_u7BA1_u7406"><a href="#u4F7F_u7528_u8FDC_u7A0Bshell_u6765_u8FDB_u884C_u76D1_u63A7_u548C_u7BA1_u7406" class="headerlink" title="使用远程shell来进行监控和管理"></a>使用远程shell来进行监控和管理</h3><p>Spring Boot支持集成一个称为’CRaSH’的Java shell。你可以在CRaSH中使用ssh或telnet命令连接到运行的应用。为了启用远程shell支持，你只需添加<code>spring-boot-starter-remote-shell</code>的依赖：</p>
+<pre><code class="xml"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span>
+    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.springframework.boot<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span>
+    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spring-boot-starter-remote-shell<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span>
+ <span class="tag">&lt;/<span class="name">dependency</span>&gt;</span>
+</code></pre>
+<p><strong>注</strong>：如果想使用telnet访问，你还需添加对<code>org.crsh:crsh.shell.telnet</code>的依赖。</p>
+<ul>
+<li>连接远程shell</li>
+</ul>
+<p>默认情况下，远程shell监听端口2000以等待连接。默认用户名为<code>user</code>，密码为随机生成的，并且在输出日志中会显示。如果应用使用Spring Security，该shell默认使用<a href="http://docs.spring.io/spring-boot/docs/current-SNAPSHOT/reference/htmlsingle/#boot-features-security">相同的配置</a>。如果不是，将使用一个简单的认证策略，你可能会看到类似这样的信息：</p>
+<pre><code class="java">Using <span class="keyword">default</span> password <span class="keyword">for</span> shell access: ec03e16c-<span class="number">4</span>cf4-<span class="number">49</span>ee-b745-<span class="number">7</span>c8255c1dd7e
+</code></pre>
+<p>Linux和OSX用户可以使用<code>ssh</code>连接远程shell，Windows用户可以下载并安装<a href="http://www.putty.org/">PuTTY</a>。</p>
+<pre><code class="shell">$ ssh -p 2000 user@localhost
+
+user@localhost&apos;s password:
+  .   ____          _            __ _ _
+ /\\ / ___&apos;_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | &apos;_ | &apos;_| | &apos;_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  &apos;  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::  (v1.3.0.BUILD-SNAPSHOT) on myhost
+</code></pre>
+<p>输入help可以获取一系列命令的帮助。Spring boot提供<code>metrics</code>，<code>beans</code>，<code>autoconfig</code>和<code>endpoint</code>命令。</p>
+<ul>
+<li>远程shell证书</li>
+</ul>
+<p>你可以使用<code>shell.auth.simple.user.name</code>和<code>shell.auth.simple.user.password</code>属性配置自定义的连接证书。也可以使用Spring Security的AuthenticationManager处理登录职责。具体参考Javadoc<a href="http://docs.spring.io/spring-boot/docs/1.3.0.BUILD-SNAPSHOT/api/org/springframework/boot/actuate/autoconfigure/CrshAutoConfiguration.html">CrshAutoConfiguration</a>和<a href="http://docs.spring.io/spring-boot/docs/1.3.0.BUILD-SNAPSHOT/api/org/springframework/boot/actuate/autoconfigure/ShellProperties.html">ShellProperties</a>。</p>
+<ul>
+<li>扩展远程shell</li>
+</ul>
+<p>有很多有趣的方式可以用来扩展远程shell。</p>
+<ul>
+<li>远程shell命令</li>
+</ul>
+<p>你可以使用Groovy或Java编写其他的shell命令（具体参考CRaSH文档）。默认情况下，Spring Boot会搜索以下路径的命令：</p>
+<ol>
+<li><code>classpath*:/commands/**</code></li>
+<li><code>classpath*:/crash/commands/**</code></li>
+</ol>
+<p><strong>注</strong>：可以通过<code>shell.commandPathPatterns</code>属性改变搜索路径。</p>
+<p>下面是一个从<code>src/main/resources/commands/hello.groovy</code>加载的’hello world’命令：</p>
+<pre><code class="java"><span class="keyword">package</span> commands
+
+<span class="keyword">import</span> org.crsh.cli.Usage
+<span class="keyword">import</span> org.crsh.cli.Command
+
+<span class="class"><span class="keyword">class</span> <span class="title">hello</span> </span>{
+
+    <span class="meta">@Usage</span>(<span class="string">"Say Hello"</span>)
+    <span class="meta">@Command</span>
+    <span class="function">def <span class="title">main</span><span class="params">(InvocationContext context)</span> </span>{
+        <span class="keyword">return</span> <span class="string">"Hello"</span>
+    }
+
+}
+</code></pre>
+<p>Spring Boot将一些额外属性添加到了InvocationContext，你可以在命令中访问它们：</p>
+<table>
+<thead>
+<tr>
+<th>属性名称</th>
+<th style="text-align:left">描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>spring.boot.version</td>
+<td style="text-align:left">Spring Boot的版本</td>
+</tr>
+<tr>
+<td>spring.version</td>
+<td style="text-align:left">Spring框架的核心版本</td>
+</tr>
+<tr>
+<td>spring.beanfactory</td>
+<td style="text-align:left">获取Spring的BeanFactory</td>
+</tr>
+<tr>
+<td>spring.environment</td>
+<td style="text-align:left">获取Spring的Environment</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>远程shell插件</li>
+</ul>
+<p>除了创建新命令，也可以扩展CRaSH shell的其他特性。所有继承<code>org.crsh.plugin.CRaSHPlugin</code>的Spring Beans将自动注册到shell。</p>
+<p>具体查看<a href="http://www.crashub.org/">CRaSH参考文档</a>。</p>
+<h3 id="u5EA6_u91CF_u6307_u6807_uFF08Metrics_uFF09"><a href="#u5EA6_u91CF_u6307_u6807_uFF08Metrics_uFF09" class="headerlink" title="度量指标（Metrics）"></a>度量指标（Metrics）</h3><p>Spring Boot执行器包括一个支持’gauge’和’counter’级别的度量指标服务。’gauge’记录一个单一值；’counter’记录一个增量（增加或减少）。同时，Spring Boot提供一个<a href="http://github.com/spring-projects/spring-boot/tree/master/spring-boot-actuator/src/main/java/org/springframework/boot/actuate/endpoint/PublicMetrics.java">PublicMetrics</a>接口，你可以实现它，从而暴露以上两种机制不能记录的指标。具体参考<a href="http://github.com/spring-projects/spring-boot/tree/master/spring-boot-actuator/src/main/java/org/springframework/boot/actuate/endpoint/SystemPublicMetrics.java">SystemPublicMetrics</a>。</p>
+<p>所有HTTP请求的指标都被自动记录，所以如果点击<code>metrics</code>端点，你可能会看到类似以下的响应：</p>
+<pre><code class="javascript">{
+    <span class="string">"counter.status.200.root"</span>: <span class="number">20</span>,
+    <span class="string">"counter.status.200.metrics"</span>: <span class="number">3</span>,
+    <span class="string">"counter.status.200.star-star"</span>: <span class="number">5</span>,
+    <span class="string">"counter.status.401.root"</span>: <span class="number">4</span>,
+    <span class="string">"gauge.response.star-star"</span>: <span class="number">6</span>,
+    <span class="string">"gauge.response.root"</span>: <span class="number">2</span>,
+    <span class="string">"gauge.response.metrics"</span>: <span class="number">3</span>,
+    <span class="string">"classes"</span>: <span class="number">5808</span>,
+    <span class="string">"classes.loaded"</span>: <span class="number">5808</span>,
+    <span class="string">"classes.unloaded"</span>: <span class="number">0</span>,
+    <span class="string">"heap"</span>: <span class="number">3728384</span>,
+    <span class="string">"heap.committed"</span>: <span class="number">986624</span>,
+    <span class="string">"heap.init"</span>: <span class="number">262144</span>,
+    <span class="string">"heap.used"</span>: <span class="number">52765</span>,
+    <span class="string">"mem"</span>: <span class="number">986624</span>,
+    <span class="string">"mem.free"</span>: <span class="number">933858</span>,
+    <span class="string">"processors"</span>: <span class="number">8</span>,
+    <span class="string">"threads"</span>: <span class="number">15</span>,
+    <span class="string">"threads.daemon"</span>: <span class="number">11</span>,
+    <span class="string">"threads.peak"</span>: <span class="number">15</span>,
+    <span class="string">"uptime"</span>: <span class="number">494836</span>,
+    <span class="string">"instance.uptime"</span>: <span class="number">489782</span>,
+    <span class="string">"datasource.primary.active"</span>: <span class="number">5</span>,
+    <span class="string">"datasource.primary.usage"</span>: <span class="number">0.25</span>
+}
+</code></pre>
+<p>此处我们可以看到基本的<code>memory</code>，<code>heap</code>，<code>class loading</code>，<code>processor</code>和<code>thread pool</code>信息，连同一些HTTP指标。在该实例中，<code>root</code>(‘/‘)，<code>/metrics</code> URLs分别返回20次，3次<code>HTTP 200</code>响应。同时可以看到<code>root</code> URL返回了4次<code>HTTP 401</code>（unauthorized）响应。双asterix（star-star）来自于被Spring MVC <code>/**</code>匹配到的一个请求（通常为一个静态资源）。</p>
+<p><code>gauge</code>级别展示了一个请求的最后响应时间。所以，<code>root</code>的最后请求被响应耗时2毫秒，<code>/metrics</code>耗时3毫秒。</p>
+<ul>
+<li>系统指标</li>
+</ul>
+<p>Spring Boot暴露以下系统指标：</p>
+<ul>
+<li>系统内存总量（mem），单位:Kb</li>
+<li>空闲内存数量（mem.free），单位:Kb</li>
+<li>处理器数量（processors）</li>
+<li>系统正常运行时间（uptime），单位:毫秒</li>
+<li>应用上下文（就是一个应用实例）正常运行时间（instance.uptime），单位:毫秒</li>
+<li>系统平均负载（systemload.average）</li>
+<li>堆信息（heap，heap.committed，heap.init，heap.used），单位:Kb</li>
+<li>线程信息（threads，thread.peak，thead.daemon）</li>
+<li>类加载信息（classes，classes.loaded，classes.unloaded）</li>
+<li>垃圾收集信息（gc.xxx.count, gc.xxx.time）</li>
+</ul>
+<ul>
+<li>数据源指标</li>
+</ul>
+<p>Spring Boot会为你应用中定义的支持的DataSource暴露以下指标：</p>
+<ul>
+<li>最大连接数（datasource.xxx.max）</li>
+<li>最小连接数（datasource.xxx.min）</li>
+<li>活动连接数（datasource.xxx.active）</li>
+<li>连接池的使用情况（datasource.xxx.usage）</li>
+</ul>
+<p>所有的数据源指标共用<code>datasoure.</code>前缀。该前缀对每个数据源都非常合适：</p>
+<ul>
+<li>如果是主数据源（唯一可用的数据源或存在的数据源中被@Primary标记的）前缀为datasource.primary</li>
+<li>如果数据源bean名称以dataSource结尾，那前缀就是bean的名称去掉dataSource的部分（例如，batchDataSource的前缀是datasource.batch）</li>
+<li>其他情况使用bean的名称作为前缀</li>
+</ul>
+<p>通过注册一个自定义版本的DataSourcePublicMetrics bean，你可以覆盖部分或全部的默认行为。默认情况下，Spring Boot提供支持所有数据源的元数据；如果你喜欢的数据源恰好不被支持，你可以添加另外的DataSourcePoolMetadataProvider beans。具体参考DataSourcePoolMetadataProvidersConfiguration。</p>
+<ul>
+<li>Tomcat session指标</li>
+</ul>
+<p>如果你使用Tomcat作为内嵌的servlet容器，session指标将被自动暴露出去。<code>httpsessions.active</code>和<code>httpsessions.max</code>提供了活动的和最大的session数量。</p>
+<ul>
+<li>记录自己的指标</li>
+</ul>
+<p>想要记录你自己的指标，只需将<a href="https://github.com/spring-projects/spring-boot/blob/master/spring-boot-actuator/src/main/java/org/springframework/boot/actuate/metrics/CounterService.java">CounterService</a>或<a href="http://github.com/spring-projects/spring-boot/tree/master/spring-boot-actuator/src/main/java/org/springframework/boot/actuate/metrics/GaugeService.java">GaugeService</a>注入到你的bean中。CounterService暴露increment，decrement和reset方法；GaugeService提供一个submit方法。</p>
+<p>下面是一个简单的示例，它记录了方法调用的次数：</p>
+<pre><code class="java"><span class="keyword">import</span> org.springframework.beans.factory.annotation.Autowired;
+<span class="keyword">import</span> org.springframework.boot.actuate.metrics.CounterService;
+<span class="keyword">import</span> org.springframework.stereotype.Service;
+
+<span class="meta">@Service</span>
+<span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">MyService</span> </span>{
+
+    <span class="keyword">private</span> <span class="keyword">final</span> CounterService counterService;
+
+    <span class="meta">@Autowired</span>
+    <span class="function"><span class="keyword">public</span> <span class="title">MyService</span><span class="params">(CounterService counterService)</span> </span>{
+        <span class="keyword">this</span>.counterService = counterService;
+    }
+
+    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">exampleMethod</span><span class="params">()</span> </span>{
+        <span class="keyword">this</span>.counterService.increment(<span class="string">"services.system.myservice.invoked"</span>);
+    }
+
+}
+</code></pre>
+<p><strong>注</strong>：你可以将任何的字符串用作指标的名称，但最好遵循所选存储或图技术的指南。<a href="http://matt.aimonetti.net/posts/2013/06/26/practical-guide-to-graphite-monitoring/">Matt Aimonetti’s Blog</a>中有一些好的关于图（Graphite）的指南。</p>
+<ul>
+<li>添加你自己的公共指标</li>
+</ul>
+<p>想要添加额外的，每次指标端点被调用时都会重新计算的度量指标，只需简单的注册其他的PublicMetrics实现bean(s)。默认情况下，端点会聚合所有这样的beans，通过定义自己的MetricsEndpoint可以轻易改变这种情况。</p>
+<ul>
+<li>指标仓库</li>
+</ul>
+<p>通过绑定一个<a href="http://github.com/spring-projects/spring-boot/tree/master/spring-boot-actuator/src/main/java/org/springframework/boot/actuate/metrics/repository/MetricRepository.java">MetricRepository</a>来实现指标服务。<code>MetricRepository</code>负责存储和追溯指标信息。Spring Boot提供一个<code>InMemoryMetricRepository</code>和一个<code>RedisMetricRepository</code>（默认使用in-memory仓库），不过你可以编写自己的<code>MetricRepository</code>。<code>MetricRepository</code>接口实际是<code>MetricReader</code>接口和<code>MetricWriter</code>接口的上层组合。具体参考<a href="http://docs.spring.io/spring-boot/docs/1.3.0.BUILD-SNAPSHOT/api/org/springframework/boot/actuate/metrics/repository/MetricRepository.html">Javadoc</a></p>
+<p>没有什么能阻止你直接将<code>MetricRepository</code>的数据导入应用中的后端存储，但我们建议你使用默认的<code>InMemoryMetricRepository</code>（如果担心堆使用情况，你可以使用自定义的Map实例），然后通过一个scheduled export job填充后端仓库（意思是先将数据保存到内存中，然后通过异步job将数据持久化到数据库，可以提高系统性能）。通过这种方式，你可以将指标数据缓存到内存中，然后通过低频率或批量导出来减少网络拥堵。Spring Boot提供一个<code>Exporter</code>接口及一些帮你开始的基本实现。</p>
+<ul>
+<li>Dropwizard指标</li>
+</ul>
+<p><a href="https://dropwizard.github.io/metrics/">Dropwizard ‘Metrics’库</a>的用户会发现Spring Boot指标被发布到了<code>com.codahale.metrics.MetricRegistry</code>。当你声明对<code>io.dropwizard.metrics:metrics-core</code>库的依赖时会创建一个默认的<code>com.codahale.metrics.MetricRegistry</code> Spring bean；如果需要自定义，你可以注册自己的@Bean实例。来自于<code>MetricRegistry</code>的指标也是自动通过<code>/metrics</code>端点暴露的。</p>
+<p>用户可以通过使用合适类型的指标名称作为前缀来创建Dropwizard指标（比如，<code>histogram.*</code>, <code>meter.*</code>）。</p>
+<ul>
+<li>消息渠道集成</li>
+</ul>
+<p>如果你的classpath下存在’Spring Messaging’ jar，一个名为<code>metricsChannel</code>的<code>MessageChannel</code>将被自动创建（除非已经存在一个）。此外，所有的指标更新事件作为’messages’发布到该渠道上。订阅该渠道的客户端可以进行额外的分析或行动。</p>
+<h3 id="u5BA1_u8BA1"><a href="#u5BA1_u8BA1" class="headerlink" title="审计"></a>审计</h3><p>Spring Boot执行器具有一个灵活的审计框架，一旦Spring Security处于活动状态（默认抛出’authentication success’，’failure’和’access denied’异常），它就会发布事件。这对于报告非常有用，同时可以基于认证失败实现一个锁定策略。</p>
+<p>你也可以使用审计服务处理自己的业务事件。为此，你可以将存在的<code>AuditEventRepository</code>注入到自己的组件，并直接使用它，或者只是简单地通过Spring <code>ApplicationEventPublisher</code>发布<code>AuditApplicationEvent</code>（使用<code>ApplicationEventPublisherAware</code>）。</p>
+<h3 id="u8FFD_u8E2A_uFF08Tracing_uFF09"><a href="#u8FFD_u8E2A_uFF08Tracing_uFF09" class="headerlink" title="追踪（Tracing）"></a>追踪（Tracing）</h3><p>对于所有的HTTP请求Spring Boot自动启用追踪。你可以查看<code>trace</code>端点，并获取最近一些请求的基本信息：</p>
+<pre><code class="javascript">[{
+    <span class="string">"timestamp"</span>: <span class="number">1394343677415</span>,
+    <span class="string">"info"</span>: {
+        <span class="string">"method"</span>: <span class="string">"GET"</span>,
+        <span class="string">"path"</span>: <span class="string">"/trace"</span>,
+        <span class="string">"headers"</span>: {
+            <span class="string">"request"</span>: {
+                <span class="string">"Accept"</span>: <span class="string">"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"</span>,
+                <span class="string">"Connection"</span>: <span class="string">"keep-alive"</span>,
+                <span class="string">"Accept-Encoding"</span>: <span class="string">"gzip, deflate"</span>,
+                <span class="string">"User-Agent"</span>: <span class="string">"Mozilla/5.0 Gecko/Firefox"</span>,
+                <span class="string">"Accept-Language"</span>: <span class="string">"en-US,en;q=0.5"</span>,
+                <span class="string">"Cookie"</span>: <span class="string">"_ga=GA1.1.827067509.1390890128; ..."</span>
+                <span class="string">"Authorization"</span>: <span class="string">"Basic ..."</span>,
+                <span class="string">"Host"</span>: <span class="string">"localhost:8080"</span>
+            },
+            <span class="string">"response"</span>: {
+                <span class="string">"Strict-Transport-Security"</span>: <span class="string">"max-age=31536000 ; includeSubDomains"</span>,
+                <span class="string">"X-Application-Context"</span>: <span class="string">"application:8080"</span>,
+                <span class="string">"Content-Type"</span>: <span class="string">"application/json;charset=UTF-8"</span>,
+                <span class="string">"status"</span>: <span class="string">"200"</span>
+            }
+        }
+    }
+},{
+    <span class="string">"timestamp"</span>: <span class="number">1394343684465</span>,
+    ...
+}]
+</code></pre>
+<ul>
+<li>自定义追踪</li>
+</ul>
+<p>如果需要追踪其他的事件，你可以将一个<a href="http://github.com/spring-projects/spring-boot/tree/master/spring-boot-actuator/src/main/java/org/springframework/boot/actuate/trace/TraceRepository.java">TraceRepository</a>注入到你的Spring Beans中。<code>add</code>方法接收一个将被转化为JSON的<code>Map</code>结构，该数据将被记录下来。</p>
+<p>默认情况下，使用的<code>InMemoryTraceRepository</code>将存储最新的100个事件。如果需要扩展该容量，你可以定义自己的<code>InMemoryTraceRepository</code>实例。如果需要，你可以创建自己的替代<code>TraceRepository</code>实现。</p>
+<h3 id="u8FDB_u7A0B_u76D1_u63A7"><a href="#u8FDB_u7A0B_u76D1_u63A7" class="headerlink" title="进程监控"></a>进程监控</h3><p>在Spring Boot执行器中，你可以找到几个创建有利于进程监控的文件的类：</p>
+<ul>
+<li><code>ApplicationPidFileWriter</code>创建一个包含应用PID的文件（默认位于应用目录，文件名为application.pid）</li>
+<li><code>EmbeddedServerPortFileWriter</code>创建一个或多个包含内嵌服务器端口的文件（默认位于应用目录，文件名为application.port）</li>
+</ul>
+<p>默认情况下，这些writers没有被激活，但你可以使用下面描述的任何方式来启用它们。</p>
+<ul>
+<li>扩展属性</li>
+</ul>
+<p>你需要激活<code>META-INF/spring.factories</code>文件里的listener(s)：</p>
+<pre><code class="java">org.springframework.context.ApplicationListener=\
+org.springframework.boot.actuate.system.ApplicationPidFileWriter,
+org.springframework.boot.actuate.system.EmbeddedServerPortFileWriter
+</code></pre>
+<ul>
+<li>以编程方式</li>
+</ul>
+<p>你也可以通过调用<code>SpringApplication.addListeners(…)</code>方法来激活一个监听器，并传递相应的<code>Writer</code>对象。该方法允许你通过<code>Writer</code>构造器自定义文件名和路径。</p>

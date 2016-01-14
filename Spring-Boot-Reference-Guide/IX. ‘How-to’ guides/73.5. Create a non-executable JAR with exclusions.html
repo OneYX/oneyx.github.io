@@ -1,0 +1,60 @@
+<h3 id="73-5-__u4F7F_u7528_u6392_u9664_u521B_u5EFA_u4E0D_u53EF_u6267_u884C_u7684JAR"><a href="#73-5-__u4F7F_u7528_u6392_u9664_u521B_u5EFA_u4E0D_u53EF_u6267_u884C_u7684JAR" class="headerlink" title="73.5. 使用排除创建不可执行的JAR"></a>73.5. 使用排除创建不可执行的JAR</h3><p>如果你构建的产物既有可执行的jar和非可执行的jar，那你常常需要为可执行的版本添加额外的配置文件，而这些文件在一个library jar中是不需要的。比如，application.yml配置文件可能需要从非可执行的JAR中排除。</p>
+<p>下面是如何在Maven中实现：</p>
+<pre><code class="xml"><span class="tag">&lt;<span class="name">build</span>&gt;</span>
+    <span class="tag">&lt;<span class="name">plugins</span>&gt;</span>
+        <span class="tag">&lt;<span class="name">plugin</span>&gt;</span>
+            <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.springframework.boot<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span>
+            <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spring-boot-maven-plugin<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span>
+            <span class="tag">&lt;<span class="name">configuration</span>&gt;</span>
+                <span class="tag">&lt;<span class="name">classifier</span>&gt;</span>exec<span class="tag">&lt;/<span class="name">classifier</span>&gt;</span>
+            <span class="tag">&lt;/<span class="name">configuration</span>&gt;</span>
+        <span class="tag">&lt;/<span class="name">plugin</span>&gt;</span>
+        <span class="tag">&lt;<span class="name">plugin</span>&gt;</span>
+            <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>maven-jar-plugin<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span>
+            <span class="tag">&lt;<span class="name">executions</span>&gt;</span>
+                <span class="tag">&lt;<span class="name">execution</span>&gt;</span>
+                    <span class="tag">&lt;<span class="name">id</span>&gt;</span>exec<span class="tag">&lt;/<span class="name">id</span>&gt;</span>
+                    <span class="tag">&lt;<span class="name">phase</span>&gt;</span>package<span class="tag">&lt;/<span class="name">phase</span>&gt;</span>
+                    <span class="tag">&lt;<span class="name">goals</span>&gt;</span>
+                        <span class="tag">&lt;<span class="name">goal</span>&gt;</span>jar<span class="tag">&lt;/<span class="name">goal</span>&gt;</span>
+                    <span class="tag">&lt;/<span class="name">goals</span>&gt;</span>
+                    <span class="tag">&lt;<span class="name">configuration</span>&gt;</span>
+                        <span class="tag">&lt;<span class="name">classifier</span>&gt;</span>exec<span class="tag">&lt;/<span class="name">classifier</span>&gt;</span>
+                    <span class="tag">&lt;/<span class="name">configuration</span>&gt;</span>
+                <span class="tag">&lt;/<span class="name">execution</span>&gt;</span>
+                <span class="tag">&lt;<span class="name">execution</span>&gt;</span>
+                    <span class="tag">&lt;<span class="name">phase</span>&gt;</span>package<span class="tag">&lt;/<span class="name">phase</span>&gt;</span>
+                    <span class="tag">&lt;<span class="name">goals</span>&gt;</span>
+                        <span class="tag">&lt;<span class="name">goal</span>&gt;</span>jar<span class="tag">&lt;/<span class="name">goal</span>&gt;</span>
+                    <span class="tag">&lt;/<span class="name">goals</span>&gt;</span>
+                    <span class="tag">&lt;<span class="name">configuration</span>&gt;</span>
+                        <span class="comment">&lt;!-- Need this to ensure application.yml is excluded --&gt;</span>
+                        <span class="tag">&lt;<span class="name">forceCreation</span>&gt;</span>true<span class="tag">&lt;/<span class="name">forceCreation</span>&gt;</span>
+                        <span class="tag">&lt;<span class="name">excludes</span>&gt;</span>
+                            <span class="tag">&lt;<span class="name">exclude</span>&gt;</span>application.yml<span class="tag">&lt;/<span class="name">exclude</span>&gt;</span>
+                        <span class="tag">&lt;/<span class="name">excludes</span>&gt;</span>
+                    <span class="tag">&lt;/<span class="name">configuration</span>&gt;</span>
+                <span class="tag">&lt;/<span class="name">execution</span>&gt;</span>
+            <span class="tag">&lt;/<span class="name">executions</span>&gt;</span>
+        <span class="tag">&lt;/<span class="name">plugin</span>&gt;</span>
+    <span class="tag">&lt;/<span class="name">plugins</span>&gt;</span>
+<span class="tag">&lt;/<span class="name">build</span>&gt;</span>
+</code></pre>
+<p>在Gradle中，你可以使用标准任务的DSL（领域特定语言）特性创建一个新的JAR存档，然后在bootRepackage任务中使用withJarTask属性添加对它的依赖：</p>
+<pre><code class="gradle">jar {
+    baseName = <span class="string">'spring-boot-sample-profile'</span>
+    version =  <span class="string">'0.0.0'</span>
+    excludes = [<span class="string">'**/application.yml'</span>]
+}
+
+<span class="keyword">task</span>(<span class="string">'execJar'</span>, type:Jar, dependsOn: <span class="string">'jar'</span>) {
+    baseName = <span class="string">'spring-boot-sample-profile'</span>
+    version =  <span class="string">'0.0.0'</span>
+    classifier = <span class="string">'exec'</span>
+    <span class="keyword">from</span> <span class="keyword">sourceSets</span>.main.output
+}
+
+bootRepackage  {
+    withJarTask = tasks[<span class="string">'execJar'</span>]
+}
+</code></pre>
